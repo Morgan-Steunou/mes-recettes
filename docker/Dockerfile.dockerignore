@@ -1,0 +1,7 @@
+# Fichiers du dossier code/ exclus des images (Docker lit ce fichier car il porte le nom du Dockerfile)
+.venv/
+node_modules/
+dist/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/

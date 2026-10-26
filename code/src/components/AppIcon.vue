@@ -1,0 +1,69 @@
+<script setup>
+// Petites icônes SVG au trait (style « Lucide »), sans dépendance externe.
+// Usage : <AppIcon name="plus" />
+defineProps({
+  name: { type: String, required: true },
+})
+
+const paths = {
+  plus: ['M12 5v14', 'M5 12h14'],
+  pencil: ['M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z', 'm15 5 4 4'],
+  trash: [
+    'M3 6h18',
+    'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6',
+    'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+  ],
+  check: ['M20 6 9 17l-5-5'],
+  x: ['M18 6 6 18', 'm6 6 12 12'],
+  alert: [
+    'M12 8v4',
+    'M12 16h.01',
+    'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z',
+  ],
+  inbox: [
+    'M22 12h-6l-2 3h-4l-2-3H2',
+    'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z',
+  ],
+  sparkles: [
+    'M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0Z',
+  ],
+  home: ['M3 10.5 12 3l9 7.5', 'M5 9.5V21h14V9.5'],
+  lock: [
+    'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z',
+    'M7 11V7a5 5 0 0 1 10 0v4',
+  ],
+  login: ['M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4', 'm10 17 5-5-5-5', 'M15 12H3'],
+  logout: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
+  user: ['M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z'],
+  info: ['M12 16v-4', 'M12 8h.01', 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z'],
+  arrowLeft: ['m12 19-7-7 7-7', 'M19 12H5'],
+  sun: [
+    'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+    'M12 2v2',
+    'M12 20v2',
+    'm4.93 4.93 1.41 1.41',
+    'm17.66 17.66 1.41 1.41',
+    'M2 12h2',
+    'M20 12h2',
+    'm6.34 17.66-1.41 1.41',
+    'm19.07 4.93-1.41 1.41',
+  ],
+  moon: ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],
+}
+</script>
+
+<template>
+  <svg
+    class="icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path v-for="d in paths[name]" :key="d" :d="d" />
+  </svg>
+</template>

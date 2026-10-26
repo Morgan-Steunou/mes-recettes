@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    a { color: #42b883; }
+  </style>
+</head>
+<body>
+  {% include "partials/header.html" %}
+  <main>{% block content %}{% endblock %}</main>
+  {% include "partials/footer.html" %}
+</body>
+</html>

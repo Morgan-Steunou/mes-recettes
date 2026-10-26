@@ -1,0 +1,71 @@
+# Lancer depuis la racine du projet : docker compose -f docker/docker-compose.yml up --build
+# Les chemins ci-dessous sont relatifs au dossier docker/.
+name: mes-recettes
+
+services:
+  db:
+    image: postgres:18-alpine
+    # POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD sont lus dans le .env du projet
+    env_file:
+      - path: ../.env
+        required: false
+    volumes:
+      - pgdata:/var/lib/postgresql
+    # Accès depuis la machine (pgAdmin, psql) sur le port 5433, pour ne pas gêner
+    # un PostgreSQL installé localement sur le port 5432. Limité à 127.0.0.1 :
+    # la base n'est pas joignable depuis le réseau.
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  api:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: api
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      # Dans Docker, PostgreSQL est le service « db » et non localhost
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      # Rechargement automatique : sous Windows, les modifications des fichiers montés
+      # ne sont pas signalées au conteneur, on les détecte par sondage
+      - WATCHFILES_FORCE_POLLING=true
+    volumes:
+      - ../code/app:/srv/code/app
+      - ../code/templates:/srv/code/templates
+      - ../code/migrations:/srv/code/migrations
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PROXY_TARGET=http://api:8000
+      # Rechargement à chaud des fichiers montés (voir vite.config.js)
+      - VITE_USE_POLLING=true
+    volumes:
+      - ../code/src:/srv/code/src
+      - ../code/public:/srv/code/public
+      - ../code/index.html:/srv/code/index.html
+      - ../code/vite.config.js:/srv/code/vite.config.js
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

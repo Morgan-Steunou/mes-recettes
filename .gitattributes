@@ -1,0 +1,8 @@
+# Fins de ligne LF dans le dépôt et sur le disque (cohérent avec .editorconfig et les conteneurs Linux)
+* text=auto eol=lf
+
+# Fichiers binaires
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary

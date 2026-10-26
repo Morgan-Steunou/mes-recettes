@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#07090f" />
+    <script>
+      // Applique le thème avant l'affichage (évite un flash de la mauvaise couleur) :
+      // choix enregistré, sinon préférence du système. Voir src/composables/useTheme.js
+      try {
+        var saved = localStorage.getItem('mes-recettes.theme')
+        var theme =
+          saved === 'light' || saved === 'dark'
+            ? saved
+            : matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark'
+        document.documentElement.dataset.theme = theme
+      } catch (e) {
+        // Stockage indisponible : thème sombre par défaut
+      }
+    </script>
+    <style>
+      html {
+        background: #07090f;
+      }
+      html[data-theme='light'] {
+        background: #f5f6fb;
+      }
+    </style>
+    <title>Mes Recettes</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

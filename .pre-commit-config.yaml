@@ -1,0 +1,39 @@
+# Lint automatique à chaque commit (outil pre-commit).
+# Activation, une fois par clone, depuis la racine du projet :
+#   code\.venv\Scripts\pre-commit install        (Linux/macOS : code/.venv/bin/pre-commit install)
+# Lancer à la main sur tout le projet :
+#   code\.venv\Scripts\pre-commit run --all-files
+#
+# Seuls les fichiers commités sont vérifiés. Si un outil corrige un fichier, le commit
+# est interrompu : relire la correction, refaire « git add », puis recommiter.
+
+repos:
+  # Python : Ruff (même version que dans requirements-dev.txt, config dans code/pyproject.toml)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        name: ruff (Python)
+        args: [--fix]
+        files: ^code/(app|tests|migrations)/
+
+  # Vue / JavaScript : outils installés dans code/node_modules (npm install)
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (formatage Vue/JS/CSS)
+        language: system
+        entry: node code/node_modules/prettier/bin/prettier.cjs --write --ignore-unknown
+        files: ^code/((src|e2e)/|[^/]+\.config\.js$)
+      - id: eslint
+        name: eslint (Vue/JS)
+        language: system
+        entry: node code/node_modules/eslint/bin/eslint.js --fix --max-warnings 0 --config code/eslint.config.js
+        files: ^code/((src|e2e)/.*\.(js|vue)$|[^/]+\.config\.js$)
+
+      - id: no-bidi-characters
+        name: caractères d'inversion de sens interdits (Trojan Source)
+        description: Écrire l'échappement (ex. \u202e) plutôt que le caractère invisible ; motif sur les octets UTF-8
+        language: pygrep
+        entry: '\xe2\x80[\xaa-\xae]|\xe2\x81[\xa6-\xa9]'
+        files: ^code/.*\.(py|js|vue|css|html)$

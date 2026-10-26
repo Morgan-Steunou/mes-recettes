@@ -1,0 +1,30 @@
+# Environnement
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# Playwright (résultats et rapports de tests E2E)
+test-results/
+playwright-report/
+blob-report/
+
+# Configuration locale de Claude Code (chemins propres à la machine)
+.claude/launch.json
+.claude/settings.local.json
+
+# Éditeurs / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
