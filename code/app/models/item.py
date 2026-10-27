@@ -10,8 +10,9 @@ class ItemModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(String(1000), default=None)
-    # Propriétaire de l'item. Nullable uniquement pour les items créés avant l'authentification :
-    # ils restent invisibles jusqu'à être rattachés (voir la commande create-user).
+    # Propriétaire de l'item. Vide pour les items créés quand les comptes sont désactivés :
+    # une fois les comptes activés, ils sont invisibles jusqu'à être rattachés au premier
+    # compte (voir la commande create-user).
     owner_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True, default=None
     )

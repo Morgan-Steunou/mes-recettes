@@ -30,7 +30,7 @@ function logout() {
           </RouterLink>
         </div>
         <ThemeSwitch />
-        <template v-if="auth.isAuthenticated">
+        <template v-if="auth.enabled && auth.isAuthenticated">
           <span v-if="auth.user" class="user" :title="`Connecté en tant que ${auth.user.username}`">
             <AppIcon name="user" /><span class="username">{{ auth.user.username }}</span>
           </span>

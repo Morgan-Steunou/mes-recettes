@@ -11,11 +11,11 @@ services:
         required: false
     volumes:
       - pgdata:/var/lib/postgresql
-    # Accès depuis la machine (pgAdmin, psql) sur le port 5433, pour ne pas gêner
+    # Accès depuis la machine (pgAdmin, psql) sur le port 5434, pour ne pas gêner
     # un PostgreSQL installé localement sur le port 5432. Limité à 127.0.0.1 :
     # la base n'est pas joignable depuis le réseau.
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s
@@ -28,7 +28,7 @@ services:
       dockerfile: ../docker/Dockerfile
       target: api
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - path: ../.env
         required: false
@@ -54,7 +54,7 @@ services:
       dockerfile: ../docker/Dockerfile
       target: web
     ports:
-      - "5173:5173"
+      - "5174:5173"
     environment:
       - VITE_PROXY_TARGET=http://api:8000
       # Rechargement à chaud des fichiers montés (voir vite.config.js)

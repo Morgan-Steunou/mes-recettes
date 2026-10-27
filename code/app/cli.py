@@ -11,6 +11,7 @@ import sys
 
 from pydantic import ValidationError
 
+from app.core.config import settings
 from app.core.database import SessionLocal, init_db
 from app.schemas.user import UserCreate
 from app.services.user_service import UsernameTakenError, UserService
@@ -44,6 +45,8 @@ def create_user(username: str, password_stdin: bool, if_not_exists: bool = False
                 return
             sys.exit(f"L'identifiant « {data.username} » est déjà utilisé.")
         print(f"Compte « {user.username} » créé (id {user.id}).")
+        if not settings.auth_enabled:
+            print("Comptes désactivés : mettre AUTH_ENABLED=true dans le .env pour s'en servir.")
         # Les items créés avant la mise en place des comptes reviennent au premier compte
         if service.count() == 1:
             claimed = service.claim_orphan_items(user)

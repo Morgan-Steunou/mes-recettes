@@ -2,17 +2,17 @@
 
 Application web de gestion de recettes : interface **Vue 3** + API **FastAPI** + templates **Jinja2** + base **PostgreSQL**, dans un seul projet.
 
-Déjà en place : comptes utilisateurs et authentification par token, exemple de ressource (« items ») avec validation sécurisée des champs texte, migrations Alembic, design clair / sombre responsive, tests pytest et Playwright, lint automatique à chaque commit, Docker.
+Déjà en place : comptes utilisateurs et authentification par token (désactivés pour l'instant, voir « Comptes et connexion »), exemple de ressource (« items ») avec validation sécurisée des champs texte, migrations Alembic, design clair / sombre responsive, tests pytest et Playwright, lint automatique à chaque commit, Docker.
 
 ## Premiers pas
 
 1. **Configurer** : copier `.env.example` en `.env`, choisir un mot de passe de base, générer une `SECRET_KEY`, puis créer la base et la base de test (voir « Démarrage rapide » et `docs/architecture.md`).
 
-2. **Installer et lancer** (voir « Démarrage rapide »), créer son compte avec `python -m app.cli create-user`, activer le hook avec `pre-commit install`.
+2. **Installer et lancer** (voir « Démarrage rapide »), activer le hook avec `pre-commit install`.
 
 3. **Remplacer l'exemple** « items » par les ressources de l'application (recettes : modèle, migration, schéma, service, route, page Vue, tests).
 
-L'application utilise les ports 8000 (API), 5173 (interface) et 5433 (base Docker) : pour les changer, modifier `docker/docker-compose.yml` et `code/vite.config.js`.
+Dans Docker, l'application utilise les ports 8001 (API), 5174 (interface) et 5434 (base) de la machine ; sans Docker, 8000 et 5173. Pour les changer, modifier `docker/docker-compose.yml` (et `code/vite.config.js` pour le serveur de dev hors Docker).
 
 ## Structure
 
@@ -50,7 +50,7 @@ Créer l'utilisateur et la base de l'application (une fois), puis reporter le mo
 psql -U postgres -c "CREATE ROLE mes_recettes LOGIN PASSWORD 'changez-moi';" -c "CREATE DATABASE mes_recettes OWNER mes_recettes;"
 ```
 
-Les tables sont créées (et mises à jour) automatiquement au démarrage de l'API, par les migrations Alembic. Créez ensuite votre compte (voir « Comptes et connexion »).
+Les tables sont créées (et mises à jour) automatiquement au démarrage de l'API, par les migrations Alembic.
 
 ```bash
 cp .env.example .env
@@ -84,7 +84,15 @@ Avec Docker, depuis la racine : `docker compose -f docker/docker-compose.yml up 
 
 ## Comptes et connexion
 
-L'API est protégée : il faut un compte pour utiliser l'application. Il n'y a pas d'inscription publique, les comptes se créent en ligne de commande (le mot de passe est demandé de façon masquée, 8 caractères minimum) :
+**Les comptes sont désactivés pour l'instant** (`AUTH_ENABLED=false` dans le `.env`) : l'application est ouverte sans connexion, la page de connexion et les routes `/api/auth` sont masquées, et les items n'ont pas de propriétaire. Tout le code des comptes reste en place.
+
+**Réactiver les comptes :**
+
+1. Mettre `AUTH_ENABLED=true` dans le `.env`.
+2. Redémarrer l'API (avec Docker : `docker compose -f docker/docker-compose.yml up -d api`). L'interface lit le réglage auprès de l'API, il suffit de recharger la page.
+3. Créer son compte (ci-dessous). Le premier compte créé dans une base récupère les items créés sans compte.
+
+L'API est alors protégée : il faut un compte pour utiliser l'application. Il n'y a pas d'inscription publique, les comptes se créent en ligne de commande (le mot de passe est demandé de façon masquée, 8 caractères minimum) :
 
 ```bash
 # Application lancée sans Docker (depuis code/)
@@ -94,7 +102,7 @@ python -m app.cli create-user mon-identifiant
 docker compose -f docker/docker-compose.yml exec api python -m app.cli create-user mon-identifiant
 ```
 
-Le premier compte créé dans une base récupère les items qui existaient avant la mise en place de l'authentification. Chaque utilisateur ne voit ensuite que ses propres items.
+Le premier compte créé dans une base récupère les items créés sans compte. Chaque utilisateur ne voit ensuite que ses propres items.
 
 Utiliser l'API directement : demander un token, puis l'envoyer dans l'en-tête `Authorization` de chaque requête (valable 60 minutes). La page `/docs` propose aussi un bouton **Authorize**.
 
@@ -110,16 +118,16 @@ Avec pgAdmin 4 (installé avec PostgreSQL) ou `psql`, deux serveurs distincts :
 | Serveur | Hôte : port | Utilisateur / mot de passe (`.env`) |
 |---------|-------------|--------------------------------------|
 | PostgreSQL installé sur la machine | `localhost:5432` | `postgres` / `POSTGRES_SUPERUSER_PASSWORD` (admin), ou `mes_recettes` / `POSTGRES_PASSWORD` |
-| Conteneur Docker `db` | `localhost:5433` | `mes_recettes` / `POSTGRES_PASSWORD` |
+| Conteneur Docker `db` | `localhost:5434` | `mes_recettes` / `POSTGRES_PASSWORD` |
 
-Le port 5433 du conteneur n'est ouvert que sur la machine (`127.0.0.1`), pas sur le réseau.
+Le port 5434 du conteneur n'est ouvert que sur la machine (`127.0.0.1`), pas sur le réseau.
 
 ## Commandes utiles
 
 | Commande        | Action |
 |-----------------|--------|
 | `make test`     | Tests Python (pytest) |
-| `make e2e` / `npm run test:e2e` (dans `code/`) | Tests de bout en bout Playwright |
+| `make e2e` / `npm run test:e2e` (dans `code/`) | Tests de bout en bout Playwright, dans le mode du `.env` (tester l'autre mode : `AUTH_ENABLED=true npx playwright test` dans `code/`) |
 | `npm run test:e2e:ui` (dans `code/`) | Tests Playwright en mode interactif (pas à pas, avec le navigateur visible) |
 | `make lint`     | Ruff + Prettier + ESLint sur tout le projet |
 | `npm run lint` / `npm run format` (dans `code/`) | ESLint avec corrections / formatage Prettier |

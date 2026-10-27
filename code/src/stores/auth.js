@@ -27,12 +27,24 @@ function saveSession(session) {
 }
 
 export const useAuthStore = defineStore('auth', () => {
+  // Comptes activés côté API (AUTH_ENABLED dans le .env), lu au démarrage par loadMode()
+  const enabled = ref(false)
   const session = ref(loadSession())
   const user = ref(null)
 
+  // Comptes désactivés : tout le monde a accès, sans connexion
   const isAuthenticated = computed(
-    () => !!session.value.token && session.value.expiresAt > Date.now(),
+    () => !enabled.value || (!!session.value.token && session.value.expiresAt > Date.now()),
   )
+
+  async function loadMode() {
+    try {
+      enabled.value = (await api.get('/health')).auth === true
+    } catch {
+      // API injoignable : les pages afficheront l'erreur, inutile de proposer la connexion
+      enabled.value = false
+    }
+  }
 
   function setSession(token, expiresInSeconds) {
     session.value = token
@@ -62,11 +74,12 @@ export const useAuthStore = defineStore('auth', () => {
     useItemsStore().reset()
   }
 
-  return { session, user, isAuthenticated, login, fetchMe, logout }
+  return { enabled, session, user, isAuthenticated, loadMode, login, fetchMe, logout }
 })
 
-// Branche le token et la déconnexion automatique sur le client HTTP
-export function installAuth(pinia, router) {
+// Branche le token et la déconnexion automatique sur le client HTTP.
+// À attendre avant d'installer le routeur : la première page dépend du mode (avec ou sans comptes).
+export async function installAuth(pinia, router) {
   const auth = useAuthStore(pinia)
   configureAuth({
     tokenProvider: () => (auth.isAuthenticated ? auth.session.token : null),
@@ -78,6 +91,7 @@ export function installAuth(pinia, router) {
       }
     },
   })
+  await auth.loadMode()
   // Session reprise après un rechargement : on récupère l'utilisateur
-  if (auth.isAuthenticated) auth.fetchMe().catch(() => {})
+  if (auth.enabled && auth.isAuthenticated) auth.fetchMe().catch(() => {})
 }

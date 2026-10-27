@@ -9,6 +9,7 @@ import './assets/main.css'
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
-installAuth(pinia, router)
-app.use(router)
-app.mount('#app')
+installAuth(pinia, router).then(() => {
+  app.use(router)
+  app.mount('#app')
+})

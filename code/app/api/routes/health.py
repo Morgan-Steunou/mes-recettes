@@ -7,4 +7,10 @@ router = APIRouter()
 
 @router.get("/health")
 def health() -> dict:
-    return {"status": "ok", "app": settings.app_name, "env": settings.environment}
+    # « auth » indique à l'interface si elle doit proposer la connexion
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "env": settings.environment,
+        "auth": settings.auth_enabled,
+    }

@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
 import app.models  # noqa: E402, F401  (enregistre les modèles auprès de Base)
+from app.core.config import settings  # noqa: E402
 from app.core.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas.user import UserCreate  # noqa: E402
@@ -37,6 +38,18 @@ def session_factory():
     engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def auth_disabled(monkeypatch):
+    """Comptes désactivés par défaut, quel que soit le .env (comme la configuration par défaut)."""
+    monkeypatch.setattr(settings, "auth_enabled", False)
+
+
+@pytest.fixture
+def enable_auth(monkeypatch):
+    """Active les comptes utilisateurs (AUTH_ENABLED=true) pour ce test."""
+    monkeypatch.setattr(settings, "auth_enabled", True)
+
+
 @pytest.fixture
 def anon_client(session_factory):
     """Client sans token d'accès."""
@@ -57,8 +70,8 @@ def create_user(session_factory):
 
 
 @pytest.fixture
-def client_for(anon_client, create_user):
-    """Crée un utilisateur, se connecte, et renvoie un client qui envoie son token."""
+def client_for(enable_auth, anon_client, create_user):
+    """Active les comptes, crée un utilisateur, se connecte, et renvoie un client avec son token."""
 
     def _client(username: str) -> TestClient:
         create_user(username)

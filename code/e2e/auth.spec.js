@@ -4,6 +4,11 @@ const usernameInput = (page) => page.getByLabel('Identifiant')
 const passwordInput = (page) => page.getByLabel('Mot de passe')
 const loginButton = (page) => page.getByRole('button', { name: 'Se connecter' })
 
+// Ces tests ne concernent que le mode avec comptes : AUTH_ENABLED=true npx playwright test
+test.beforeEach(({ authEnabled }) => {
+  test.skip(!authEnabled, 'Comptes désactivés (AUTH_ENABLED=false)')
+})
+
 async function login(page, { username, password }) {
   await usernameInput(page).fill(username)
   await passwordInput(page).fill(password)

@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     templates_dir: Path = CODE_DIR / "templates"
 
+    # Comptes utilisateurs. Désactivés : l'application est ouverte sans connexion et les items
+    # n'ont pas de propriétaire. AUTH_ENABLED=true les réactive (voir README, « Comptes »).
+    auth_enabled: bool = False
+
     # Authentification : clé de signature des tokens (obligatoire, au moins 32 caractères).
     # Générer : python -c "import secrets; print(secrets.token_urlsafe(48))"
     secret_key: str = Field(min_length=32)

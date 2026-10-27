@@ -3,6 +3,14 @@ import pytest
 from app.core.templating import render
 
 
+@pytest.fixture(params=["sans comptes", "avec comptes"])
+def client(request, anon_client):
+    """Chaque test de ce fichier tourne dans les deux modes (AUTH_ENABLED=false puis true)."""
+    if request.param == "avec comptes":
+        return request.getfixturevalue("client_for")("alice")
+    return anon_client
+
+
 def test_health(client):
     r = client.get("/api/health")
     assert r.status_code == 200

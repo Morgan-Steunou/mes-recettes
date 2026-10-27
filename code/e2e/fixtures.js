@@ -1,5 +1,6 @@
 // Base commune des tests E2E : importer { test, expect } depuis ce fichier.
-// Par défaut, chaque test démarre connecté avec le compte de test principal, sur une liste vide.
+// Par défaut, chaque test démarre sur une liste vide, connecté avec le compte de test principal
+// si les comptes sont activés.
 // Pour un test qui doit démarrer déconnecté : test.use({ loggedIn: false })
 import { test as base, expect } from '@playwright/test'
 
@@ -19,7 +20,7 @@ export async function getToken(request, user = TEST_USER.main) {
 }
 
 export async function clearItems(request, token) {
-  const headers = { Authorization: `Bearer ${token}` }
+  const headers = token ? { Authorization: `Bearer ${token}` } : {}
   const items = await (await request.get('/api/items', { headers })).json()
   for (const item of items) await request.delete(`/api/items/${item.id}`, { headers })
 }
@@ -27,9 +28,17 @@ export async function clearItems(request, token) {
 export const test = base.extend({
   loggedIn: [true, { option: true }],
 
-  // Token du compte principal, avec sa liste d'items vidée avant chaque test
-  token: async ({ request }, use) => {
-    const token = await getToken(request)
+  // Comptes activés dans l'API de test (AUTH_ENABLED du .env, ou de l'environnement :
+  // AUTH_ENABLED=true npx playwright test)
+  authEnabled: async ({ request }, use) => {
+    const health = await (await request.get('/api/health')).json()
+    await use(health.auth === true)
+  },
+
+  // Token du compte principal (null si les comptes sont désactivés),
+  // avec sa liste d'items vidée avant chaque test
+  token: async ({ request, authEnabled }, use) => {
+    const token = authEnabled ? await getToken(request) : null
     await clearItems(request, token)
     await use(token)
   },
@@ -38,7 +47,7 @@ export const test = base.extend({
   // Le script se relance à chaque chargement de page : il n'écrit la session qu'une fois
   // par onglet, pour qu'une déconnexion ou une session altérée par un test soit conservée.
   page: async ({ page, loggedIn, token }, use) => {
-    if (loggedIn) {
+    if (loggedIn && token) {
       await page.addInitScript(
         ([key, value]) => {
           if (window.sessionStorage.getItem('e2e-session-seeded')) return

@@ -1,6 +1,8 @@
 """Logique métier des items, persistés en base de données via SQLAlchemy.
 
 Chaque service est lié à un utilisateur : il ne voit et ne modifie que ses items.
+Comptes désactivés : owner_id vaut None, le service travaille sur les items sans propriétaire
+(le premier compte créé les récupère, voir la commande create-user).
 """
 from fastapi import Depends
 from sqlalchemy import select
@@ -14,7 +16,7 @@ from app.schemas.item import Item, ItemCreate, ItemUpdate
 
 
 class ItemService:
-    def __init__(self, db: Session, owner_id: int) -> None:
+    def __init__(self, db: Session, owner_id: int | None) -> None:
         self.db = db
         self.owner_id = owner_id
 
@@ -60,6 +62,6 @@ class ItemService:
 
 
 def get_item_service(
-    db: Session = Depends(get_db), user: UserModel = Depends(get_current_user)
+    db: Session = Depends(get_db), user: UserModel | None = Depends(get_current_user)
 ) -> ItemService:
-    return ItemService(db, owner_id=user.id)
+    return ItemService(db, owner_id=user.id if user else None)

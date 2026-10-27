@@ -1,4 +1,8 @@
-"""Dépendances communes des routes : utilisateur connecté (token d'accès obligatoire)."""
+"""Dépendances communes des routes : utilisateur connecté (token d'accès obligatoire).
+
+Quand les comptes sont désactivés (AUTH_ENABLED=false), l'accès est libre : il n'y a pas
+d'utilisateur courant (None) et les routes /auth répondent 404.
+"""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -16,9 +20,16 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
+def require_auth_enabled() -> None:
+    if not settings.auth_enabled:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Comptes utilisateurs désactivés")
+
+
 def get_current_user(
     token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> UserModel:
+) -> UserModel | None:
+    if not settings.auth_enabled:
+        return None
     unauthorized = HTTPException(
         status.HTTP_401_UNAUTHORIZED,
         "Authentification requise ou session expirée",

@@ -11,6 +11,11 @@ def bearer(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture(autouse=True)
+def auth_enabled(enable_auth):
+    """Tous les tests de ce fichier portent sur les comptes : AUTH_ENABLED=true."""
+
+
 def make_token(payload: dict, key: str | None = None, algorithm: str = "HS256") -> str:
     return jwt.encode(payload, key or settings.secret_key, algorithm=algorithm)
 
