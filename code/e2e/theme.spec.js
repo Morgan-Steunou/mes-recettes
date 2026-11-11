@@ -43,17 +43,24 @@ test.describe('système en thème clair', () => {
 
 test('aucun débordement horizontal sur mobile', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 760 })
-  await page.goto('/')
-  await page
-    .getByPlaceholder('Titre de la recette')
-    .fill('Un titre de recette assez long pour remplir la ligne')
-  await page.getByRole('button', { name: 'Ajouter' }).click()
-  await expect(page.locator('.list li')).toHaveCount(1)
+  const noOverflow = () =>
+    page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
 
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  )
-  expect(overflow).toBe(0)
-  const row = await page.locator('.list li').boundingBox()
+  // Formulaire
+  await page.goto('/recettes/nouvelle')
+  await page
+    .getByRole('textbox', { name: 'Titre', exact: true })
+    .fill('Un titre de recette assez long pour remplir largement la ligne')
+  await page
+    .getByRole('textbox', { name: 'Description', exact: true })
+    .fill('Une description longue '.repeat(8))
+  await page.getByRole('spinbutton', { name: 'Portions', exact: true }).fill('4')
+  expect(await noOverflow()).toBe(0)
+  await page.getByRole('button', { name: 'Enregistrer' }).click()
+
+  // Liste
+  await expect(page.locator('.list > li')).toHaveCount(1)
+  expect(await noOverflow()).toBe(0)
+  const row = await page.locator('.list > li').boundingBox()
   expect(row.x + row.width).toBeLessThanOrEqual(375)
 })

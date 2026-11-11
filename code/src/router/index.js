@@ -9,6 +9,20 @@ const router = createRouter({
     // comptes sont désactivés ; /login renvoie alors vers l'accueil)
     { path: '/', name: 'home', component: HomeView, meta: { requiresAuth: true } },
     // Chargement différé (lazy loading) des autres pages
+    {
+      path: '/recettes/nouvelle',
+      name: 'recipe-new',
+      component: () => import('@/views/RecipeFormView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      // :id uniquement numérique (sinon page introuvable)
+      path: '/recettes/:id(\\d+)/modifier',
+      name: 'recipe-edit',
+      component: () => import('@/views/RecipeFormView.vue'),
+      props: true,
+      meta: { requiresAuth: true },
+    },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
     { path: '/about', name: 'about', component: () => import('@/views/AboutView.vue') },
     {

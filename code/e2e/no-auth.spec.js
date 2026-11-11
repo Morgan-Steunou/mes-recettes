@@ -8,7 +8,7 @@ test.beforeEach(({ authEnabled }) => {
 test('ouvre l’accueil directement, sans connexion', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mes recettes' })).toBeVisible()
   await expect(page.getByText('Aucune recette pour le moment.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Se déconnecter' })).toHaveCount(0)
 })

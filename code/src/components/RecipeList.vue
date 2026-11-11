@@ -1,34 +1,16 @@
 <script setup>
-import { nextTick, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
+import { formatDuration, totalTime } from '@/utils/recipe'
 
-const props = defineProps({
+defineProps({
   recipes: { type: Array, required: true },
-  // Reçu via @update="..." : déclaré en prop pour pouvoir attendre son résultat
-  onUpdate: { type: Function, default: null },
 })
 const emit = defineEmits(['remove'])
 
-const editingId = ref(null)
-const editTitle = ref('')
-const editInput = ref(null)
-
-async function startEdit(recipe) {
-  editingId.value = recipe.id
-  editTitle.value = recipe.title
-  await nextTick()
-  editInput.value?.[0]?.focus()
-}
-
-function cancelEdit() {
-  editingId.value = null
-}
-
-async function saveEdit(recipe) {
-  const title = editTitle.value.trim()
-  if (!title) return
-  // En cas d'échec, le champ reste ouvert avec le texte saisi
-  if (title === recipe.title || (await props.onUpdate?.(recipe.id, { title }))) cancelEdit()
+function confirmRemove(recipe) {
+  if (window.confirm(`Supprimer la recette « ${recipe.title} » ? Cette action est définitive.`)) {
+    emit('remove', recipe.id)
+  }
 }
 
 // Pastille colorée propre à chaque recette (teinte dérivée de son id)
@@ -42,59 +24,54 @@ function avatarStyle(recipe) {
 function initial(title) {
   return [...title.trim()][0]?.toUpperCase() ?? '?'
 }
+
+function servingsLabel(servings) {
+  return `${servings} portion${servings > 1 ? 's' : ''}`
+}
 </script>
 
 <template>
   <div v-if="!recipes.length" class="empty card">
     <span class="empty-icon" aria-hidden="true"><AppIcon name="inbox" /></span>
     <p class="empty-title">Aucune recette pour le moment.</p>
-    <p class="empty-hint">Ajoutez votre première recette avec le champ ci-dessus.</p>
+    <p class="empty-hint">Ajoutez votre première recette avec le bouton « Nouvelle recette ».</p>
   </div>
 
   <TransitionGroup v-else tag="ul" name="recipe" class="list">
-    <li
-      v-for="recipe in recipes"
-      :key="recipe.id"
-      class="recipe"
-      :class="{ editing: editingId === recipe.id }"
-    >
+    <li v-for="recipe in recipes" :key="recipe.id" class="recipe">
       <span class="avatar" :style="avatarStyle(recipe)" aria-hidden="true">{{
         initial(recipe.title)
       }}</span>
 
-      <form
-        v-if="editingId === recipe.id"
-        class="row"
-        @submit.prevent="saveEdit(recipe)"
-        @keydown.esc="cancelEdit"
-      >
-        <input
-          ref="editInput"
-          v-model="editTitle"
-          class="edit-input"
-          maxlength="150"
-          aria-label="Nouveau titre"
-        />
-        <div class="actions">
-          <button type="submit" class="btn btn-sm">
-            <AppIcon name="check" /><span class="label">Enregistrer</span>
-          </button>
-          <button type="button" class="btn-ghost" @click="cancelEdit">
-            <AppIcon name="x" /><span class="label">Annuler</span>
-          </button>
-        </div>
-      </form>
+      <div class="body">
+        <RouterLink
+          :to="{ name: 'recipe-edit', params: { id: recipe.id } }"
+          class="title"
+          :title="recipe.title"
+          >{{ recipe.title }}</RouterLink
+        >
+        <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
+        <ul
+          v-if="recipe.servings || totalTime(recipe) !== null"
+          class="meta"
+          aria-label="Informations"
+        >
+          <li v-if="recipe.servings">
+            <AppIcon name="users" />{{ servingsLabel(recipe.servings) }}
+          </li>
+          <li v-if="totalTime(recipe) !== null">
+            <AppIcon name="clock" />{{ formatDuration(totalTime(recipe)) }}
+          </li>
+        </ul>
+      </div>
 
-      <div v-else class="row">
-        <span class="name">{{ recipe.title }}</span>
-        <div class="actions">
-          <button class="btn-ghost" @click="startEdit(recipe)">
-            <AppIcon name="pencil" /><span class="label">Modifier</span>
-          </button>
-          <button class="btn-danger" @click="emit('remove', recipe.id)">
-            <AppIcon name="trash" /><span class="label">Supprimer</span>
-          </button>
-        </div>
+      <div class="actions">
+        <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-ghost">
+          <AppIcon name="pencil" /><span class="label">Modifier</span>
+        </RouterLink>
+        <button class="btn-danger" @click="confirmRemove(recipe)">
+          <AppIcon name="trash" /><span class="label">Supprimer</span>
+        </button>
       </div>
     </li>
   </TransitionGroup>
@@ -117,7 +94,7 @@ function initial(title) {
   align-items: center;
   gap: 0.85rem;
   min-height: 64px;
-  padding: 0.7rem 0.8rem;
+  padding: 0.8rem 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -130,40 +107,54 @@ function initial(title) {
   background: var(--surface-hover);
   border-color: var(--border-strong);
 }
-.recipe.editing {
-  border-color: rgba(139, 92, 246, 0.55);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
-}
 .avatar {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   font-weight: 700;
   color: #fff;
-  border-radius: 11px;
+  border-radius: 12px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.body {
+  display: grid;
+  gap: 0.2rem;
   flex: 1;
   min-width: 0;
 }
-.name {
-  flex: 1;
-  min-width: 0;
+.title,
+.description {
   overflow: hidden;
-  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.edit-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.5rem 0.75rem;
+.title {
+  font-weight: 600;
+  color: var(--text);
+}
+.title:hover {
+  color: var(--accent-2);
+}
+.description {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+.meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 .actions {
   display: flex;
@@ -172,7 +163,7 @@ function initial(title) {
 }
 /* Les actions n'apparaissent pleinement qu'au survol (sur ordinateur) */
 @media (hover: hover) {
-  .recipe:not(.editing) .actions {
+  .actions {
     opacity: 0.55;
     transition: opacity var(--transition);
   }
@@ -243,7 +234,6 @@ function initial(title) {
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .btn-sm,
   .btn-ghost,
   .btn-danger {
     padding: 0.5rem;
