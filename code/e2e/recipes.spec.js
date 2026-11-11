@@ -49,6 +49,29 @@ test('modifie une recette', async ({ page }) => {
   await expect(recipeRow(page, 'Après')).toBeVisible()
 })
 
+test('renommer une recette conserve ses autres champs', async ({ page, request, token }) => {
+  // PUT remplace toute la recette : l'interface doit renvoyer les champs non modifiés
+  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+  const full = {
+    title: 'Tarte complète',
+    description: 'Avec tous les champs',
+    servings: 6,
+    prep_time_minutes: 20,
+    cook_time_minutes: 35,
+    steps: 'Étaler\nCuire',
+  }
+  const created = await (await request.post('/api/recipes', { headers, data: full })).json()
+  await page.reload()
+
+  await recipeRow(page, full.title).getByRole('button', { name: 'Modifier' }).click()
+  await page.getByLabel('Nouveau titre').fill('Tarte renommée')
+  await page.getByLabel('Nouveau titre').press('Enter')
+  await expect(recipeRow(page, 'Tarte renommée')).toBeVisible()
+
+  const saved = await (await request.get(`/api/recipes/${created.id}`, { headers })).json()
+  expect(saved).toMatchObject({ ...full, title: 'Tarte renommée' })
+})
+
 test('annule une modification avec Échap', async ({ page }) => {
   await addRecipe(page, 'Inchangé')
   await recipeRow(page, 'Inchangé').getByRole('button', { name: 'Modifier' }).click()

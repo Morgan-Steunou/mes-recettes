@@ -117,6 +117,12 @@ def test_recipe_text_is_cleaned_and_stored_verbatim(client):
     assert len(client.get("/api/recipes").json()) == 2
 
 
+def test_recipe_empty_optional_text_stored_as_null(client):
+    r = client.post("/api/recipes", json={"title": "Vide", "description": "", "steps": "  \n "})
+    assert r.status_code == 201
+    assert r.json()["description"] is None and r.json()["steps"] is None
+
+
 def test_recipes_list(client):
     client.post("/api/recipes", json={"title": "A"})
     client.post("/api/recipes", json={"title": "B", "description": "Détail"})
