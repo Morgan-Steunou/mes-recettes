@@ -54,3 +54,35 @@ export function relativeDay(iso, today = new Date()) {
   if (days < 365) return `il y a ${Math.floor(days / 30)} mois`
   return `le ${formatDay(iso)}`
 }
+
+// Périodes proposées par la page Historique : bornes { since, until } au format « AAAA-MM-JJ »
+// (null = pas de borne). « Tout » n'a aucune borne.
+export const PERIODS = [
+  { key: 'tout', label: 'Tout' },
+  { key: '30j', label: '30 derniers jours' },
+  { key: '3m', label: '3 derniers mois' },
+  { key: 'annee', label: 'Cette année' },
+]
+
+export function periodRange(key, today = new Date()) {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  switch (key) {
+    case '30j':
+      start.setDate(start.getDate() - 29)
+      return { since: toDayISO(start), until: null }
+    case '3m':
+      start.setMonth(start.getMonth() - 3)
+      return { since: toDayISO(start), until: null }
+    case 'annee':
+      return { since: `${today.getFullYear()}-01-01`, until: null }
+    default:
+      return { since: null, until: null }
+  }
+}
+
+const monthFormat = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
+
+// « novembre 2026 », pour regrouper l'historique par mois
+export function formatMonth(iso) {
+  return monthFormat.format(parseDay(iso))
+}

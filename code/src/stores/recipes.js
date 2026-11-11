@@ -59,6 +59,14 @@ export const useRecipesStore = defineStore('recipes', () => {
     return api.get(`/recipes/${recipeId}/cookings`)
   }
 
+  // Historique global, toutes recettes : { items, total, recipe_count }
+  function fetchHistory({ since = null, until = null, limit = 50, offset = 0 } = {}) {
+    const params = new URLSearchParams({ limit, offset })
+    if (since) params.set('since', since)
+    if (until) params.set('until', until)
+    return api.get(`/cookings?${params}`)
+  }
+
   // Après un ajout ou une suppression, le résumé de la recette en mémoire est relu
   async function refreshSummary(recipeId) {
     const fresh = await api.get(`/recipes/${recipeId}`)
@@ -99,6 +107,7 @@ export const useRecipesStore = defineStore('recipes', () => {
     updateRecipe,
     removeRecipe,
     fetchCookings,
+    fetchHistory,
     addCooking,
     deleteCooking,
     clearActionError,

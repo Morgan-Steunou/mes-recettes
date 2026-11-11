@@ -73,6 +73,8 @@ Ingrédients : table `recipe_ingredients` (nom, quantité, unité, `position` po
 
 Historique des repas : table `recipe_cookings` (date `cooked_on`, note de 1 à 5 et commentaire facultatifs), routes `/api/recipes/{id}/cookings` (lister, ajouter, retirer). Les recettes renvoient un résumé calculé, `cooked_count` et `last_cooked_on`, en une seule requête pour toute la liste. La date par défaut est celle du jour ; une date future est refusée (un jour de tolérance pour les fuseaux horaires). Côté interface, `CookingLog` sur la fiche et `utils/dates.js`, qui lit les dates de jour dans le fuseau du navigateur.
 
+Historique global : `GET /api/cookings` (paramètres `since` et `until` inclus, `limit` 50 par défaut et 200 au plus, `offset`) renvoie `{ items, total, recipe_count }`, chaque repas avec le titre de sa recette ; `total` et `recipe_count` portent sur toute la période, pas seulement sur la page. Page `/historique` (`HistoryView`) : repas regroupés par mois, périodes prédéfinies gardées dans l'adresse (`?periode=30j`, `3m`, `annee`), « Refaire » qui ouvre la fiche, chargement des repas plus anciens par paquets de 50.
+
 ## Templates (`code/templates/`)
 Templates Jinja2 rendus par l'API : pages serveur, emails, etc.
 

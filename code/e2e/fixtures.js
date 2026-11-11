@@ -74,7 +74,7 @@ export { expect }
 // En-tête sur une seule ligne, sans débordement, à plusieurs largeurs d'écran
 // (marque et liens ne passent jamais à la ligne ; voir AppHeader.vue)
 export async function expectHeaderFits(page) {
-  for (const width of [360, 481, 560, 600, 601, 680, 721, 800, 860, 861, 960, 1024]) {
+  for (const width of [360, 481, 560, 600, 680, 760, 761, 860, 980, 981, 1024, 1280]) {
     await page.setViewportSize({ width, height: 700 })
     const result = await page.evaluate(() => {
       const nav = document.querySelector('.nav').getBoundingClientRect()
