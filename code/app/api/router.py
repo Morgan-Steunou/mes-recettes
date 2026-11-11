@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user, require_auth_enabled
-from app.api.routes import auth, cookings, health, recipes
+from app.api.routes import auth, cookings, health, history, recipes
 
 api_router = APIRouter()
 # Routes publiques
@@ -21,4 +21,7 @@ api_router.include_router(
     prefix="/recipes/{recipe_id}/cookings",
     tags=["cookings"],
     dependencies=protected,
+)
+api_router.include_router(
+    history.router, prefix="/cookings", tags=["cookings"], dependencies=protected
 )

@@ -6,14 +6,15 @@ l'utilisateur courant (une recette d'un autre utilisateur est traitée comme ine
 from datetime import date
 
 from fastapi import Depends
-from sqlalchemy import select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.cooking import CookingModel
+from app.models.recipe import RecipeModel
 from app.models.user import UserModel
-from app.schemas.cooking import Cooking, CookingCreate
+from app.schemas.cooking import Cooking, CookingCreate, HistoryEntry, HistoryPage
 from app.services.recipe_service import RecipeService
 
 
@@ -24,7 +25,40 @@ class RecipeNotFoundError(Exception):
 class CookingService:
     def __init__(self, db: Session, owner_id: int | None) -> None:
         self.db = db
+        self.owner_id = owner_id
         self.recipes = RecipeService(db, owner_id)
+
+    def history(
+        self,
+        since: date | None = None,
+        until: date | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> HistoryPage:
+        """Tous les repas de l'utilisateur, du plus récent au plus ancien, bornes incluses."""
+        conditions = [RecipeModel.owner_id == self.owner_id]
+        if since is not None:
+            conditions.append(CookingModel.cooked_on >= since)
+        if until is not None:
+            conditions.append(CookingModel.cooked_on <= until)
+
+        base = select(CookingModel).join(RecipeModel).where(*conditions)
+        total, recipe_count = self.db.execute(
+            select(func.count(CookingModel.id), func.count(distinct(CookingModel.recipe_id)))
+            .join(RecipeModel)
+            .where(*conditions)
+        ).one()
+        rows = self.db.execute(
+            base.add_columns(RecipeModel.title)
+            .order_by(CookingModel.cooked_on.desc(), CookingModel.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        items = [
+            HistoryEntry(**Cooking.model_validate(cooking).model_dump(), recipe_title=title)
+            for cooking, title in rows
+        ]
+        return HistoryPage(items=items, total=total, recipe_count=recipe_count)
 
     def _check_recipe(self, recipe_id: int) -> None:
         if not self.recipes.exists(recipe_id):

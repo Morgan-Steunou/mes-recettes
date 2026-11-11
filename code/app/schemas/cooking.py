@@ -48,3 +48,19 @@ class Cooking(BaseModel):
     rating: int | None
     comment: str | None
     created_at: datetime
+
+
+class HistoryEntry(Cooking):
+    """Repas de l'historique global : avec le titre de la recette, pour l'afficher."""
+
+    recipe_title: str
+
+
+class HistoryPage(BaseModel):
+    """Une page de l'historique et les totaux de toute la période demandée."""
+
+    items: list[HistoryEntry]
+    # Nombre de repas sur la période (toutes pages confondues)
+    total: int
+    # Nombre de recettes différentes cuisinées sur la période
+    recipe_count: int

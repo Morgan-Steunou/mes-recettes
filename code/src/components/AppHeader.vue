@@ -25,6 +25,9 @@ function logout() {
           <RouterLink to="/" class="link">
             <AppIcon name="home" /><span class="link-label">Accueil</span>
           </RouterLink>
+          <RouterLink to="/historique" class="link">
+            <AppIcon name="history" /><span class="link-label">Historique</span>
+          </RouterLink>
           <RouterLink to="/about" class="link">
             <AppIcon name="info" /><span class="link-label">À propos</span>
           </RouterLink>
@@ -136,7 +139,7 @@ function logout() {
 }
 
 /* Nom d'utilisateur et libellé « Se déconnecter » masqués tant que la place manque */
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   .user,
   .logout .label {
     position: absolute;
@@ -147,9 +150,9 @@ function logout() {
     white-space: nowrap;
   }
 }
-/* Liens réduits à leur icône dès 600 px, pour laisser la place au bouton de déconnexion
-   quand les comptes sont activés ; le libellé reste lu par les lecteurs d'écran */
-@media (max-width: 600px) {
+/* Liens réduits à leur icône dès 760 px (trois liens, et le bouton de déconnexion quand les
+   comptes sont activés) ; le libellé reste lu par les lecteurs d'écran */
+@media (max-width: 760px) {
   .link {
     padding: 0.45rem 0.6rem;
   }
