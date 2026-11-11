@@ -15,6 +15,10 @@ const store = useRecipesStore()
 const router = useRouter()
 
 const isEdit = computed(() => props.id !== null)
+// Annuler : retour à la fiche en modification, à la liste en création
+const cancelTarget = computed(() =>
+  isEdit.value ? { name: 'recipe-detail', params: { id: props.id } } : { name: 'home' },
+)
 const recipeId = computed(() => (isEdit.value ? Number(props.id) : null))
 
 // Champs du formulaire : texte pour tout (les nombres sont convertis à l'envoi)
@@ -94,9 +98,11 @@ async function submit() {
   saving.value = true
   try {
     const data = payload(ingredients)
-    if (isEdit.value) await store.updateRecipe(recipeId.value, data)
-    else await store.createRecipe(data)
-    router.push({ name: 'home' })
+    const saved = isEdit.value
+      ? await store.updateRecipe(recipeId.value, data)
+      : await store.createRecipe(data)
+    // Retour sur la fiche de la recette enregistrée
+    router.push({ name: 'recipe-detail', params: { id: saved.id } })
   } catch (e) {
     saveError.value = e.message
   } finally {
@@ -211,7 +217,7 @@ onMounted(() => {
     </div>
 
     <div class="actions">
-      <RouterLink to="/" class="btn-ghost">Annuler</RouterLink>
+      <RouterLink :to="cancelTarget" class="btn-ghost">Annuler</RouterLink>
       <button type="submit" class="btn" :disabled="saving || !form.title.trim()">
         <AppIcon name="check" />
         {{ saving ? 'Enregistrement…' : 'Enregistrer' }}

@@ -67,3 +67,18 @@ export function ingredientsPayload(rows) {
   }
   return { ingredients }
 }
+
+// Étapes saisies (une par ligne) → liste à numéroter. Les lignes vides sont ignorées et une
+// numérotation déjà tapée (« 1. », « 2) », « - ») est retirée, l'affichage numérotant lui-même.
+export function splitSteps(steps) {
+  return (steps ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:\d+\s*[.)-]|[-•*])\s*/, '').trim())
+    .filter(Boolean)
+}
+
+// Quantité ajustée au nombre de portions choisi (recette prévue pour base portions)
+export function scaleQuantity(quantity, base, wanted) {
+  if (quantity == null || !base || !wanted) return quantity
+  return Math.round(((quantity * wanted) / base) * 1000) / 1000
+}

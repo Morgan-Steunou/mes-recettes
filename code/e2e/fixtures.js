@@ -19,6 +19,14 @@ export async function getToken(request, user = TEST_USER.main) {
   return (await res.json()).access_token
 }
 
+// Après un enregistrement réussi, le formulaire ouvre la fiche de la recette :
+// attend cette page puis revient à la liste par le lien « Mes recettes »
+export async function backToList(page) {
+  await expect(page).toHaveURL(/\/recettes\/\d+$/)
+  await page.getByRole('link', { name: 'Mes recettes', exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
+}
+
 export async function clearRecipes(request, token) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
   const recipes = await (await request.get('/api/recipes', { headers })).json()

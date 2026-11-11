@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, backToList } from './fixtures.js'
 
 // Champs d'une ligne d'ingrédient (n commence à 1)
 const quantity = (page, n) =>
@@ -41,7 +41,7 @@ test('saisit des ingrédients ligne par ligne avec Entrée', async ({ page, requ
   await fillRow(page, 3, { q: '0,5', u: 'l', name: 'Lait' })
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   await expect(recipeRow(page, 'Crêpes')).toContainText('3 ingrédients')
   const saved = await apiRecipe(request, token, 'Crêpes')
   expect(saved.ingredients).toEqual([
@@ -70,7 +70,7 @@ test('ajoute une ligne avec le bouton et en retire une', async ({ page, request,
   await expect(ingredientName(page, 3)).toHaveCount(0)
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   const saved = await apiRecipe(request, token, 'Crêpes')
   expect(saved.ingredients.map((i) => i.name)).toEqual(['Farine', 'Sucre'])
 })
@@ -86,7 +86,7 @@ test('ignore les lignes vides', async ({ page, request, token }) => {
   await fillRow(page, 2, { name: 'Beurre' })
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   const saved = await apiRecipe(request, token, 'Crêpes')
   expect(saved.ingredients).toEqual([{ name: 'Beurre', quantity: null, unit: null }])
   // Seule la ligne remplie compte dans la liste
@@ -97,7 +97,7 @@ test('accepte une fraction comme quantité', async ({ page, request, token }) =>
   await fillRow(page, 1, { q: '1/2', u: 'c. à café', name: 'Sel' })
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   const saved = await apiRecipe(request, token, 'Crêpes')
   expect(saved.ingredients[0]).toEqual({ name: 'Sel', quantity: 0.5, unit: 'c. à café' })
 })
@@ -144,13 +144,14 @@ test('affiche l’erreur de l’API pour un ingrédient précis', async ({ page 
 test('modifier les ingrédients remplace l’ancienne liste', async ({ page, request, token }) => {
   await fillRow(page, 1, { q: '2', name: 'Pommes' })
   await saveButton(page).click()
-  await recipeRow(page, 'Crêpes').getByRole('link', { name: 'Modifier' }).click()
+  // Depuis la fiche ouverte après l'enregistrement
+  await page.getByRole('link', { name: 'Modifier' }).click()
 
   await expect(ingredientName(page, 1)).toHaveValue('Pommes')
   await fillRow(page, 1, { q: '4', name: 'Poires' })
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   const saved = await apiRecipe(request, token, 'Crêpes')
   expect(saved.ingredients).toEqual([{ name: 'Poires', quantity: 4, unit: null }])
 })

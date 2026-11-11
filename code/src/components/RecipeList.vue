@@ -53,7 +53,7 @@ function hasMeta(recipe) {
 
       <div class="body">
         <RouterLink
-          :to="{ name: 'recipe-edit', params: { id: recipe.id } }"
+          :to="{ name: 'recipe-detail', params: { id: recipe.id } }"
           class="title"
           :title="recipe.title"
           >{{ recipe.title }}</RouterLink

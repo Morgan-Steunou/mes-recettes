@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, backToList } from './fixtures.js'
 
 const themeSwitch = (page) => page.getByRole('switch', { name: 'Thème sombre' })
 const currentTheme = (page) => page.evaluate(() => document.documentElement.dataset.theme)
@@ -58,7 +58,10 @@ test('aucun débordement horizontal sur mobile', async ({ page }) => {
   expect(await noOverflow()).toBe(0)
   await page.getByRole('button', { name: 'Enregistrer' }).click()
 
-  // Liste
+  // Fiche de la recette, puis liste
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Un titre de recette')
+  expect(await noOverflow()).toBe(0)
+  await backToList(page)
   await expect(page.locator('.list > li')).toHaveCount(1)
   expect(await noOverflow()).toBe(0)
   const row = await page.locator('.list > li').boundingBox()
