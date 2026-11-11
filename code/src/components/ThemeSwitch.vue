@@ -54,7 +54,7 @@ const { isDark, toggleTheme } = useTheme()
 /* Icône du thème actif mise en valeur (au-dessus du curseur) */
 .switch[aria-checked='false'] .sun,
 .switch[aria-checked='true'] .moon {
-  color: #fff;
+  color: var(--accent-contrast);
 }
 .knob {
   position: absolute;
@@ -62,9 +62,9 @@ const { isDark, toggleTheme } = useTheme()
   left: 3px;
   width: 26px;
   height: 26px;
-  background: var(--accent-gradient);
+  background: var(--accent);
   border-radius: 50%;
-  box-shadow: 0 2px 10px -2px rgba(139, 92, 246, 0.8);
+  box-shadow: 0 2px 8px -2px var(--accent-glow);
   transition: transform 220ms cubic-bezier(0.3, 1.4, 0.6, 1);
 }
 .knob.on {

@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#07090f" />
+    <meta name="theme-color" content="#f7f3ec" />
     <script>
       // Applique le thème avant l'affichage (évite un flash de la mauvaise couleur) :
       // choix enregistré, sinon préférence du système. Voir src/composables/useTheme.js
@@ -14,20 +14,20 @@
         var theme =
           saved === 'light' || saved === 'dark'
             ? saved
-            : matchMedia('(prefers-color-scheme: light)').matches
-              ? 'light'
-              : 'dark'
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
         document.documentElement.dataset.theme = theme
       } catch (e) {
-        // Stockage indisponible : thème sombre par défaut
+        // Stockage indisponible : thème clair par défaut
       }
     </script>
     <style>
       html {
-        background: #07090f;
+        background: #f7f3ec;
       }
-      html[data-theme='light'] {
-        background: #f5f6fb;
+      html[data-theme='dark'] {
+        background: #171310;
       }
     </style>
     <title>Mes Recettes</title>

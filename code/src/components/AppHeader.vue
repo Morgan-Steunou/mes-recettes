@@ -17,7 +17,7 @@ function logout() {
   <header class="header">
     <nav class="container nav" aria-label="Navigation principale">
       <RouterLink to="/" class="brand">
-        <span class="logo" aria-hidden="true"><AppIcon name="sparkles" /></span>
+        <span class="logo" aria-hidden="true"><AppIcon name="chefHat" /></span>
         <span class="brand-name">Mes Recettes</span>
       </RouterLink>
       <div class="right">
@@ -64,7 +64,9 @@ function logout() {
   align-items: center;
   gap: 0.6rem;
   color: var(--text);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 .brand:hover {
@@ -75,10 +77,9 @@ function logout() {
   place-items: center;
   width: 32px;
   height: 32px;
-  color: #fff;
-  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  background: var(--accent);
   border-radius: 10px;
-  box-shadow: 0 4px 16px -4px rgba(139, 92, 246, 0.8);
 }
 .right {
   display: flex;
@@ -113,7 +114,6 @@ function logout() {
 .link.router-link-exact-active {
   color: var(--text);
   background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.35);
 }
 .user {
   display: inline-flex;

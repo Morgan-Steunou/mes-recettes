@@ -171,13 +171,16 @@ onMounted(load)
                 :checked="doneIngredients.has(index)"
                 @change="toggleIngredient(index)"
               />
-              <!-- Espaces explicites ({{ ' ' }}) : sans eux, le texte lu serait « 250gFarine » -->
-              <span v-if="ingredient.quantity != null || ingredient.unit" class="amount"
-                ><strong v-if="ingredient.quantity != null">{{ quantityOf(ingredient) }}</strong
-                >{{ ingredient.quantity != null && ingredient.unit ? ' ' : ''
-                }}{{ ingredient.unit }}</span
-              >{{ ingredient.quantity != null || ingredient.unit ? ' ' : '' }}
-              <span class="ingredient-name">{{ ingredient.name }}</span>
+              <!-- Une seule ligne de texte, espaces explicites ({{ ' ' }}) : sans eux,
+                   le texte lu serait « 250gFarine » -->
+              <span class="ingredient-text"
+                ><span v-if="ingredient.quantity != null || ingredient.unit" class="amount"
+                  ><strong v-if="ingredient.quantity != null">{{ quantityOf(ingredient) }}</strong
+                  >{{ ingredient.quantity != null && ingredient.unit ? ' ' : ''
+                  }}{{ ingredient.unit }}</span
+                >{{ ingredient.quantity != null || ingredient.unit ? ' ' : ''
+                }}<span class="ingredient-name">{{ ingredient.name }}</span></span
+              >
             </label>
           </li>
         </ul>
@@ -262,6 +265,7 @@ onMounted(load)
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 .fact dt {
   display: inline-flex;
@@ -326,7 +330,7 @@ h2 {
 }
 .link {
   padding: 0;
-  color: var(--accent-2);
+  color: var(--accent);
   text-decoration: underline;
   background: none;
   border: 0;
@@ -358,16 +362,15 @@ h2 {
   accent-color: var(--accent);
   transform: translateY(2px);
 }
+.ingredient-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .amount {
-  flex-shrink: 0;
   color: var(--text-muted);
 }
 .amount strong {
   color: var(--text);
-}
-.ingredient-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 .done .amount,
 .done .amount strong,
@@ -401,8 +404,8 @@ h2 {
   height: 1.75rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #fff;
-  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  background: var(--accent);
   border-radius: 999px;
 }
 .step.done .number {

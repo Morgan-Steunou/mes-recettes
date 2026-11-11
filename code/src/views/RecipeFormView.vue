@@ -242,6 +242,8 @@ onMounted(() => {
   margin-bottom: 1.5rem;
 }
 .recipe-form {
+  /* Largeur de lecture confortable, même sur grand écran */
+  max-width: 760px;
   display: grid;
   gap: 1.1rem;
   padding: 1.5rem;
@@ -263,7 +265,7 @@ onMounted(() => {
   color: var(--text-muted);
 }
 .required {
-  color: var(--accent-2);
+  color: var(--accent);
 }
 .field input,
 .field textarea {
