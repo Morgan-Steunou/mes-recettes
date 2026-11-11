@@ -28,6 +28,14 @@ function initial(title) {
 function servingsLabel(servings) {
   return `${servings} portion${servings > 1 ? 's' : ''}`
 }
+
+function ingredientsLabel(count) {
+  return `${count} ingrédient${count > 1 ? 's' : ''}`
+}
+
+function hasMeta(recipe) {
+  return recipe.servings || totalTime(recipe) !== null || recipe.ingredients?.length
+}
 </script>
 
 <template>
@@ -51,16 +59,15 @@ function servingsLabel(servings) {
           >{{ recipe.title }}</RouterLink
         >
         <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
-        <ul
-          v-if="recipe.servings || totalTime(recipe) !== null"
-          class="meta"
-          aria-label="Informations"
-        >
+        <ul v-if="hasMeta(recipe)" class="meta" aria-label="Informations">
           <li v-if="recipe.servings">
             <AppIcon name="users" />{{ servingsLabel(recipe.servings) }}
           </li>
           <li v-if="totalTime(recipe) !== null">
             <AppIcon name="clock" />{{ formatDuration(totalTime(recipe)) }}
+          </li>
+          <li v-if="recipe.ingredients?.length">
+            <AppIcon name="list" />{{ ingredientsLabel(recipe.ingredients.length) }}
           </li>
         </ul>
       </div>

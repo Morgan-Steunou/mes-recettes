@@ -45,7 +45,7 @@ Sécurité :
 Côté interface : `src/stores/auth.js` garde le token (dans `localStorage`, pour rester connecté après un rechargement), `src/services/api.js` l'ajoute à chaque requête et renvoie vers `/login` sur un 401 ; le routeur protège les pages `meta.requiresAuth`.
 
 ### Validation des champs texte
-Les règles sont dans `schemas/recipe.py` (le frontend ne fait que les répéter pour le confort) : espaces de début / fin retirés, longueur max (titre 150, description 2000, étapes 10 000), nombres bornés (portions 1 à 100, temps 0 à 1 440 minutes), caractères de contrôle et caractères de direction Unicode refusés, champs inconnus refusés. Le HTML n'est pas filtré mais stocké tel quel : il est échappé à l'affichage par Vue (`{{ }}`) et Jinja2 (autoescape). Ne jamais afficher une donnée utilisateur avec `v-html` ou `| safe`.
+Les règles sont dans `schemas/recipe.py` (le frontend ne fait que les répéter pour le confort) : espaces de début / fin retirés, longueur max (titre 150, description 2000, étapes 10 000), nombres bornés (portions 1 à 100, temps 0 à 1 440 minutes), ingrédients limités à 100 par recette (nom 100 caractères, unité 30, quantité strictement positive et finie), caractères de contrôle et caractères de direction Unicode refusés, champs inconnus refusés. Le HTML n'est pas filtré mais stocké tel quel : il est échappé à l'affichage par Vue (`{{ }}`) et Jinja2 (autoescape). Ne jamais afficher une donnée utilisateur avec `v-html` ou `| safe`. Les erreurs 422 ne renvoient pas la valeur reçue (`input`), voir `validation_error_handler` dans `main.py`.
 
 ### Base de données
 PostgreSQL, via SQLAlchemy et le pilote `psycopg` (3). La connexion est construite dans `core/config.py` à partir des variables `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` du `.env` ; `DATABASE_URL` (URL SQLAlchemy complète), si elle est définie, est prioritaire.
@@ -68,6 +68,8 @@ Le schéma est géré par **Alembic** (`code/migrations/versions/`). `init_db()`
 | `assets/`     | CSS, images |
 
 Pages des recettes : `/` (liste, `HomeView`), `/recettes/nouvelle` et `/recettes/:id/modifier` (même formulaire, `RecipeFormView`). Le formulaire envoie tous les champs (un champ vide devient `null`), car la modification remplace la recette entière. La suppression demande une confirmation.
+
+Ingrédients : table `recipe_ingredients` (nom, quantité, unité, `position` pour l'ordre), envoyés et renvoyés dans le champ `ingredients` de la recette. Une modification remplace toute la liste. Dans le formulaire (`IngredientsEditor`), les lignes vides sont ignorées, une quantité s'écrit « 250 », « 0,5 » ou « 1/2 » (`utils/recipe.js`).
 
 ## Templates (`code/templates/`)
 Templates Jinja2 rendus par l'API : pages serveur, emails, etc.

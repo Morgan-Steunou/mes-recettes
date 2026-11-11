@@ -5,14 +5,22 @@ Comptes désactivés : owner_id vaut None, le service travaille sur les recettes
 (le premier compte créé les récupère, voir la commande create-user).
 """
 from fastapi import Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models.recipe import RecipeModel
+from app.models.recipe import IngredientModel, RecipeModel
 from app.models.user import UserModel
-from app.schemas.recipe import Recipe, RecipeCreate, RecipeUpdate
+from app.schemas.recipe import IngredientIn, Recipe, RecipeCreate, RecipeUpdate
+
+
+def _ingredient_rows(ingredients: list[IngredientIn]) -> list[IngredientModel]:
+    """Lignes d'ingrédients à enregistrer, numérotées dans l'ordre reçu."""
+    return [
+        IngredientModel(position=i, **ingredient.model_dump())
+        for i, ingredient in enumerate(ingredients)
+    ]
 
 
 class RecipeService:
@@ -42,7 +50,11 @@ class RecipeService:
         return Recipe.model_validate(row) if row else None
 
     def create(self, data: RecipeCreate) -> Recipe:
-        row = RecipeModel(**data.model_dump(), owner_id=self.owner_id)
+        row = RecipeModel(
+            **data.model_dump(exclude={"ingredients"}),
+            ingredients=_ingredient_rows(data.ingredients),
+            owner_id=self.owner_id,
+        )
         self.db.add(row)
         self.db.commit()
         # Relit les dates calculées par la base (created_at, updated_at)
@@ -53,8 +65,12 @@ class RecipeService:
         row = self._get_row(recipe_id)
         if row is None:
             return None
-        for field, value in data.model_dump().items():
+        for field, value in data.model_dump(exclude={"ingredients"}).items():
             setattr(row, field, value)
+        # Les anciens ingrédients sont supprimés (delete-orphan), les nouveaux insérés dans l'ordre
+        row.ingredients = _ingredient_rows(data.ingredients)
+        # Date de modification mise à jour même si seuls les ingrédients ont changé
+        row.updated_at = func.now()
         self.db.commit()
         self.db.refresh(row)
         return Recipe.model_validate(row)

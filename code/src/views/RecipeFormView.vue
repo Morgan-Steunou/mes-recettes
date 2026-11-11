@@ -3,7 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
-import { formatDuration, totalTime } from '@/utils/recipe'
+import IngredientsEditor from '@/components/IngredientsEditor.vue'
+import { formatDuration, ingredientRow, ingredientsPayload, totalTime } from '@/utils/recipe'
 
 // id : présent en modification (/recettes/:id/modifier), absent en création
 const props = defineProps({
@@ -25,6 +26,8 @@ const form = reactive({
   cook_time_minutes: '',
   steps: '',
 })
+// Lignes d'ingrédients (une ligne vide pour commencer)
+const ingredientRows = ref([ingredientRow()])
 
 const loading = ref(false)
 // Recette à modifier introuvable ou illisible : le formulaire n'est pas affiché
@@ -53,7 +56,7 @@ function toText(value) {
 }
 
 // Données envoyées à l'API : champs vides → null
-function payload() {
+function payload(ingredients) {
   return {
     title: form.title.trim(),
     description: toText(form.description),
@@ -61,6 +64,7 @@ function payload() {
     prep_time_minutes: toNumber(form.prep_time_minutes),
     cook_time_minutes: toNumber(form.cook_time_minutes),
     steps: toText(form.steps),
+    ingredients,
   }
 }
 
@@ -69,6 +73,9 @@ async function load() {
   try {
     const recipe = await store.fetchRecipe(recipeId.value)
     for (const key of Object.keys(form)) form[key] = recipe[key] ?? ''
+    ingredientRows.value = recipe.ingredients.length
+      ? recipe.ingredients.map(ingredientRow)
+      : [ingredientRow()]
   } catch (e) {
     loadError.value = e.message
   } finally {
@@ -78,10 +85,17 @@ async function load() {
 
 async function submit() {
   saveError.value = null
+  // Ligne incomplète (ex. quantité sans nom) : signalée avant tout envoi
+  const { ingredients, error } = ingredientsPayload(ingredientRows.value)
+  if (error) {
+    saveError.value = error
+    return
+  }
   saving.value = true
   try {
-    if (isEdit.value) await store.updateRecipe(recipeId.value, payload())
-    else await store.createRecipe(payload())
+    const data = payload(ingredients)
+    if (isEdit.value) await store.updateRecipe(recipeId.value, data)
+    else await store.createRecipe(data)
     router.push({ name: 'home' })
   } catch (e) {
     saveError.value = e.message
@@ -178,6 +192,8 @@ onMounted(() => {
       </label>
     </div>
     <p v-if="total" class="hint" aria-live="polite">Temps total : {{ total }}</p>
+
+    <IngredientsEditor v-model="ingredientRows" />
 
     <div class="field">
       <label class="field">
