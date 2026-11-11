@@ -54,6 +54,29 @@ export const useRecipesStore = defineStore('recipes', () => {
     }
   }
 
+  // Historique des repas d'une recette (du plus récent au plus ancien)
+  function fetchCookings(recipeId) {
+    return api.get(`/recipes/${recipeId}/cookings`)
+  }
+
+  // Après un ajout ou une suppression, le résumé de la recette en mémoire est relu
+  async function refreshSummary(recipeId) {
+    const fresh = await api.get(`/recipes/${recipeId}`)
+    recipes.value = recipes.value.map((r) => (r.id === recipeId ? fresh : r))
+    return fresh
+  }
+
+  // Renvoie { cooking, recipe } : l'entrée créée et la recette avec son résumé à jour
+  async function addCooking(recipeId, data) {
+    const cooking = await api.post(`/recipes/${recipeId}/cookings`, data)
+    return { cooking, recipe: await refreshSummary(recipeId) }
+  }
+
+  async function deleteCooking(recipeId, cookingId) {
+    await api.delete(`/recipes/${recipeId}/cookings/${cookingId}`)
+    return refreshSummary(recipeId)
+  }
+
   function clearActionError() {
     actionError.value = null
   }
@@ -75,6 +98,9 @@ export const useRecipesStore = defineStore('recipes', () => {
     createRecipe,
     updateRecipe,
     removeRecipe,
+    fetchCookings,
+    addCooking,
+    deleteCooking,
     clearActionError,
     reset,
   }

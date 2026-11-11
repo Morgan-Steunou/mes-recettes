@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
+import CookingLog from '@/components/CookingLog.vue'
+import { relativeDay } from '@/utils/dates'
 import {
   formatDuration,
   formatQuantity,
@@ -22,6 +24,24 @@ const recipe = ref(null)
 const loading = ref(true)
 const loadError = ref(null)
 const deleteError = ref(null)
+// Historique des repas (bas de page), ouvert aussi par le bouton du haut
+const log = ref(null)
+
+// « Cuisinée 3 fois, la dernière il y a 5 jours »
+const cookedSummary = computed(() => {
+  const count = recipe.value?.cooked_count ?? 0
+  if (!count) return 'Pas encore cuisinée'
+  const times = count === 1 ? 'une fois' : `${count} fois`
+  return `Cuisinée ${times}, la dernière ${relativeDay(recipe.value.last_cooked_on)}`
+})
+
+function onCookingsChanged(updated) {
+  recipe.value = {
+    ...recipe.value,
+    cooked_count: updated.cooked_count,
+    last_cooked_on: updated.last_cooked_on,
+  }
+}
 
 // Portions choisies pour adapter les quantités (si la recette indique ses portions)
 const servings = ref(null)
@@ -106,8 +126,12 @@ onMounted(load)
         <p class="eyebrow">Recette</p>
         <h1 class="page-title">{{ recipe.title }}</h1>
         <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
+        <p class="cooked" aria-live="polite"><AppIcon name="history" /> {{ cookedSummary }}</p>
       </div>
       <div class="actions">
+        <button type="button" class="btn" @click="log.open()">
+          <AppIcon name="check" /> Je l'ai cuisinée
+        </button>
         <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-ghost">
           <AppIcon name="pencil" /> Modifier
         </RouterLink>
@@ -210,6 +234,8 @@ onMounted(load)
         <p v-if="steps.length" class="hint">Touchez une étape pour la marquer comme faite.</p>
       </section>
     </div>
+
+    <CookingLog ref="log" :recipe-id="recipe.id" @changed="onCookingsChanged" />
   </article>
 </template>
 
@@ -244,8 +270,18 @@ onMounted(load)
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+.cooked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-faint);
+}
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.4rem;
   flex-shrink: 0;
 }
@@ -435,6 +471,13 @@ h2 {
 @media (max-width: 560px) {
   .hero {
     flex-direction: column;
+  }
+  /* Sous le titre : boutons alignés à gauche, « Je l'ai cuisinée » sur toute la largeur */
+  .actions {
+    justify-content: flex-start;
+  }
+  .actions .btn {
+    flex-basis: 100%;
   }
   .panel {
     padding: 1.1rem;

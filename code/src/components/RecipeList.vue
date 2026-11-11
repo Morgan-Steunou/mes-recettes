@@ -1,6 +1,7 @@
 <script setup>
 import AppIcon from '@/components/AppIcon.vue'
 import { formatDuration, totalTime } from '@/utils/recipe'
+import { relativeDay } from '@/utils/dates'
 
 defineProps({
   recipes: { type: Array, required: true },
@@ -31,7 +32,12 @@ function ingredientsLabel(count) {
 }
 
 function hasMeta(recipe) {
-  return recipe.servings || totalTime(recipe) !== null || recipe.ingredients?.length
+  return (
+    recipe.servings ||
+    totalTime(recipe) !== null ||
+    recipe.ingredients?.length ||
+    recipe.last_cooked_on
+  )
 }
 
 function detailLink(recipe) {
@@ -73,6 +79,9 @@ function detailLink(recipe) {
           </li>
           <li v-if="recipe.ingredients?.length">
             <AppIcon name="list" />{{ ingredientsLabel(recipe.ingredients.length) }}
+          </li>
+          <li v-if="recipe.last_cooked_on" class="cooked">
+            <AppIcon name="history" />Faite {{ relativeDay(recipe.last_cooked_on) }}
           </li>
         </ul>
       </div>

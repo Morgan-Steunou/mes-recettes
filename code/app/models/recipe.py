@@ -37,6 +37,10 @@ class RecipeModel(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    # Historique des repas : chargé seulement si on le demande ; supprimé avec la recette
+    cookings: Mapped[list["CookingModel"]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
 
 
 class IngredientModel(Base):

@@ -13,7 +13,7 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 
 ## Phase 2 : Historique
 
-- [ ] **5. « Je l'ai cuisinée ».** Bouton qui enregistre la date, une note et un commentaire. La fiche affiche la dernière fois et le nombre de fois.
+- [x] **5. « Je l'ai cuisinée ».** Bouton qui enregistre la date, une note et un commentaire. La fiche affiche la dernière fois et le nombre de fois.
 - [ ] **6. Page Historique.** Repas passés du plus récent au plus ancien, filtre par période, bouton pour refaire la recette.
 
 ## Phase 3 : Recherche

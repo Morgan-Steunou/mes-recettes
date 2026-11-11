@@ -1,6 +1,6 @@
 """Schémas Pydantic (validation des entrées / sorties de l'API)."""
 import unicodedata
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
@@ -117,3 +117,6 @@ class Recipe(RecipeBase):
     ingredients: list[Ingredient]
     created_at: datetime
     updated_at: datetime
+    # Résumé de l'historique des repas (calculé, pas modifiable directement)
+    cooked_count: int = 0
+    last_cooked_on: date | None = None

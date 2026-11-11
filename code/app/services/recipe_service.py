@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.models.cooking import CookingModel
 from app.models.recipe import IngredientModel, RecipeModel
 from app.models.user import UserModel
 from app.schemas.recipe import IngredientIn, Recipe, RecipeCreate, RecipeUpdate
@@ -28,6 +29,34 @@ class RecipeService:
         self.db = db
         self.owner_id = owner_id
 
+    def _to_schemas(self, rows: list[RecipeModel]) -> list[Recipe]:
+        """Recettes avec le résumé de leur historique, en une seule requête pour toutes."""
+        ids = [row.id for row in rows]
+        stats = {}
+        if ids:
+            query = (
+                select(
+                    CookingModel.recipe_id,
+                    func.count(CookingModel.id),
+                    func.max(CookingModel.cooked_on),
+                )
+                .where(CookingModel.recipe_id.in_(ids))
+                .group_by(CookingModel.recipe_id)
+            )
+            stats = {recipe_id: (count, last) for recipe_id, count, last in self.db.execute(query)}
+        recipes = []
+        for row in rows:
+            count, last = stats.get(row.id, (0, None))
+            summary = {"cooked_count": count, "last_cooked_on": last}
+            recipes.append(Recipe.model_validate(row).model_copy(update=summary))
+        return recipes
+
+    def _to_schema(self, row: RecipeModel) -> Recipe:
+        return self._to_schemas([row])[0]
+
+    def exists(self, recipe_id: int) -> bool:
+        return self._get_row(recipe_id) is not None
+
     def _get_row(self, recipe_id: int) -> RecipeModel | None:
         # La recette d'un autre utilisateur est traitée comme inexistante (404, pas 403) :
         # on ne révèle pas son existence
@@ -43,11 +72,11 @@ class RecipeService:
             .where(RecipeModel.owner_id == self.owner_id)
             .order_by(RecipeModel.id)
         )
-        return [Recipe.model_validate(row) for row in rows]
+        return self._to_schemas(list(rows))
 
     def get(self, recipe_id: int) -> Recipe | None:
         row = self._get_row(recipe_id)
-        return Recipe.model_validate(row) if row else None
+        return self._to_schema(row) if row else None
 
     def create(self, data: RecipeCreate) -> Recipe:
         row = RecipeModel(
@@ -59,7 +88,7 @@ class RecipeService:
         self.db.commit()
         # Relit les dates calculées par la base (created_at, updated_at)
         self.db.refresh(row)
-        return Recipe.model_validate(row)
+        return self._to_schema(row)
 
     def update(self, recipe_id: int, data: RecipeUpdate) -> Recipe | None:
         row = self._get_row(recipe_id)
@@ -73,7 +102,7 @@ class RecipeService:
         row.updated_at = func.now()
         self.db.commit()
         self.db.refresh(row)
-        return Recipe.model_validate(row)
+        return self._to_schema(row)
 
     def delete(self, recipe_id: int) -> bool:
         row = self._get_row(recipe_id)

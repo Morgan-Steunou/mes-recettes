@@ -71,6 +71,8 @@ Pages des recettes : `/` (liste, `HomeView`), `/recettes/:id` (fiche, `RecipeDet
 
 Ingrédients : table `recipe_ingredients` (nom, quantité, unité, `position` pour l'ordre), envoyés et renvoyés dans le champ `ingredients` de la recette. Une modification remplace toute la liste. Dans le formulaire (`IngredientsEditor`), les lignes vides sont ignorées, une quantité s'écrit « 250 », « 0,5 » ou « 1/2 » (`utils/recipe.js`).
 
+Historique des repas : table `recipe_cookings` (date `cooked_on`, note de 1 à 5 et commentaire facultatifs), routes `/api/recipes/{id}/cookings` (lister, ajouter, retirer). Les recettes renvoient un résumé calculé, `cooked_count` et `last_cooked_on`, en une seule requête pour toute la liste. La date par défaut est celle du jour ; une date future est refusée (un jour de tolérance pour les fuseaux horaires). Côté interface, `CookingLog` sur la fiche et `utils/dates.js`, qui lit les dates de jour dans le fuseau du navigateur.
+
 ## Templates (`code/templates/`)
 Templates Jinja2 rendus par l'API : pages serveur, emails, etc.
 
