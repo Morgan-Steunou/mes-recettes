@@ -67,7 +67,7 @@ Le schéma est géré par **Alembic** (`code/migrations/versions/`). `init_db()`
 | `utils/`      | Fonctions d'affichage partagées (ex. durées des recettes) |
 | `assets/`     | CSS, images |
 
-Pages des recettes : `/` (liste, `HomeView`), `/recettes/nouvelle` et `/recettes/:id/modifier` (même formulaire, `RecipeFormView`). Le formulaire envoie tous les champs (un champ vide devient `null`), car la modification remplace la recette entière. La suppression demande une confirmation.
+Pages des recettes : `/` (liste, `HomeView`), `/recettes/:id` (fiche, `RecipeDetailView`), `/recettes/nouvelle` et `/recettes/:id/modifier` (même formulaire, `RecipeFormView`). Après un enregistrement, le formulaire ouvre la fiche. La fiche adapte les quantités au nombre de portions choisi et permet de cocher ingrédients et étapes pendant la préparation (rien n'est enregistré). Le formulaire envoie tous les champs (un champ vide devient `null`), car la modification remplace la recette entière. La suppression demande une confirmation.
 
 Ingrédients : table `recipe_ingredients` (nom, quantité, unité, `position` pour l'ordre), envoyés et renvoyés dans le champ `ingredients` de la recette. Une modification remplace toute la liste. Dans le formulaire (`IngredientsEditor`), les lignes vides sont ignorées, une quantité s'écrit « 250 », « 0,5 » ou « 1/2 » (`utils/recipe.js`).
 

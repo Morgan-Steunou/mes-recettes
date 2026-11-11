@@ -13,12 +13,9 @@ function confirmRemove(recipe) {
   }
 }
 
-// Pastille colorée propre à chaque recette (teinte dérivée de son id)
-function avatarStyle(recipe) {
-  const hue = (recipe.id * 47 + 260) % 360
-  return {
-    background: `linear-gradient(135deg, hsl(${hue} 80% 62%), hsl(${(hue + 50) % 360} 85% 55%))`,
-  }
+// Vignette pastel propre à chaque recette : une des 5 teintes du thème, choisie selon son id
+function tileStyle(recipe) {
+  return { background: `var(--tile-${(recipe.id % 5) + 1})` }
 }
 
 function initial(title) {
@@ -36,28 +33,36 @@ function ingredientsLabel(count) {
 function hasMeta(recipe) {
   return recipe.servings || totalTime(recipe) !== null || recipe.ingredients?.length
 }
+
+function detailLink(recipe) {
+  return { name: 'recipe-detail', params: { id: recipe.id } }
+}
 </script>
 
 <template>
   <div v-if="!recipes.length" class="empty card">
-    <span class="empty-icon" aria-hidden="true"><AppIcon name="inbox" /></span>
+    <span class="empty-icon" aria-hidden="true"><AppIcon name="chefHat" /></span>
     <p class="empty-title">Aucune recette pour le moment.</p>
     <p class="empty-hint">Ajoutez votre première recette avec le bouton « Nouvelle recette ».</p>
   </div>
 
   <TransitionGroup v-else tag="ul" name="recipe" class="list">
     <li v-for="recipe in recipes" :key="recipe.id" class="recipe">
-      <span class="avatar" :style="avatarStyle(recipe)" aria-hidden="true">{{
-        initial(recipe.title)
-      }}</span>
+      <!-- Vignette cliquable à la souris ; ignorée au clavier et par les lecteurs d'écran,
+           qui passent par le lien du titre -->
+      <RouterLink
+        :to="detailLink(recipe)"
+        class="tile"
+        :style="tileStyle(recipe)"
+        tabindex="-1"
+        aria-hidden="true"
+        >{{ initial(recipe.title) }}</RouterLink
+      >
 
       <div class="body">
-        <RouterLink
-          :to="{ name: 'recipe-edit', params: { id: recipe.id } }"
-          class="title"
-          :title="recipe.title"
-          >{{ recipe.title }}</RouterLink
-        >
+        <RouterLink :to="detailLink(recipe)" class="title" :title="recipe.title">{{
+          recipe.title
+        }}</RouterLink>
         <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
         <ul v-if="hasMeta(recipe)" class="meta" aria-label="Informations">
           <li v-if="recipe.servings">
@@ -72,12 +77,17 @@ function hasMeta(recipe) {
         </ul>
       </div>
 
+      <!-- Boutons réduits à leur icône ; le libellé reste lu par les lecteurs d'écran -->
       <div class="actions">
-        <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-ghost">
-          <AppIcon name="pencil" /><span class="label">Modifier</span>
+        <RouterLink
+          :to="{ name: 'recipe-edit', params: { id: recipe.id } }"
+          class="btn-ghost icon-btn"
+          title="Modifier"
+        >
+          <AppIcon name="pencil" /><span class="sr-only">Modifier</span>
         </RouterLink>
-        <button class="btn-danger" @click="confirmRemove(recipe)">
-          <AppIcon name="trash" /><span class="label">Supprimer</span>
+        <button class="btn-danger icon-btn" title="Supprimer" @click="confirmRemove(recipe)">
+          <AppIcon name="trash" /><span class="sr-only">Supprimer</span>
         </button>
       </div>
     </li>
@@ -85,74 +95,82 @@ function hasMeta(recipe) {
 </template>
 
 <style scoped>
+/* Grille de cartes : autant de colonnes de 240 px minimum que la largeur le permet */
 .list {
   position: relative;
   display: grid;
-  /* minmax(0, 1fr) : la colonne peut rétrécir sous la largeur du contenu
-     (sinon un titre long sur une ligne fait déborder la carte sur mobile) */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .recipe {
   display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-height: 64px;
-  padding: 0.8rem 0.9rem;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.75rem 0.75rem 0.85rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   transition:
-    background var(--transition),
     border-color var(--transition),
-    transform var(--transition);
+    transform var(--transition),
+    box-shadow var(--transition);
 }
 .recipe:hover {
-  background: var(--surface-hover);
   border-color: var(--border-strong);
+  transform: translateY(-2px);
 }
-.avatar {
+.tile {
   display: grid;
   place-items: center;
-  flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  font-weight: 700;
-  color: #fff;
-  border-radius: 12px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  height: 120px;
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 500;
+  color: var(--tile-text);
+  border-radius: var(--radius);
+}
+.tile:hover {
+  text-decoration: none;
 }
 .body {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.35rem;
   flex: 1;
+  align-content: start;
   min-width: 0;
-}
-.title,
-.description {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 0 0.3rem;
 }
 .title {
+  font-size: 1.05rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 .title:hover {
-  color: var(--accent-2);
+  color: var(--accent);
+  text-decoration: none;
 }
+/* Description sur deux lignes au plus */
 .description {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 0.875rem;
   color: var(--text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 .meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 0.9rem;
-  margin: 0.15rem 0 0;
+  margin: 0.2rem 0 0;
   padding: 0;
   list-style: none;
   font-size: 0.8rem;
@@ -165,13 +183,17 @@ function hasMeta(recipe) {
 }
 .actions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.4rem;
-  flex-shrink: 0;
+  padding: 0 0.2rem;
+}
+.icon-btn {
+  padding: 0.5rem;
 }
 /* Les actions n'apparaissent pleinement qu'au survol (sur ordinateur) */
 @media (hover: hover) {
   .actions {
-    opacity: 0.55;
+    opacity: 0.6;
     transition: opacity var(--transition);
   }
   .recipe:hover .actions,
@@ -196,11 +218,13 @@ function hasMeta(recipe) {
   height: 56px;
   margin-bottom: 0.6rem;
   font-size: 1.5rem;
-  color: var(--accent-2);
+  color: var(--accent);
   background: var(--accent-soft);
   border-radius: 16px;
 }
 .empty-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 600;
 }
 .empty-hint {
@@ -221,29 +245,19 @@ function hasMeta(recipe) {
 }
 .recipe-leave-to {
   opacity: 0;
-  transform: translateX(16px);
+  transform: scale(0.96);
 }
 .recipe-leave-active {
   position: absolute;
-  width: 100%;
+  width: 240px;
 }
 .recipe-move {
   transition: transform 220ms ease;
 }
 
-/* Sur petit écran : boutons réduits à leur icône (le libellé reste lu par les lecteurs d'écran) */
 @media (max-width: 560px) {
-  .label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-  .btn-ghost,
-  .btn-danger {
-    padding: 0.5rem;
+  .tile {
+    height: 96px;
   }
 }
 </style>

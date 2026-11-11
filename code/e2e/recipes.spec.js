@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, backToList } from './fixtures.js'
 
 // Raccourcis vers les éléments des pages
 const newRecipeButton = (page) => page.getByRole('link', { name: 'Nouvelle recette' })
@@ -20,11 +20,17 @@ const FIELDS = {
 }
 
 // Ouvre le formulaire depuis l'accueil, remplit les champs donnés et enregistre
-async function createRecipe(page, values) {
+async function submitRecipe(page, values) {
   await newRecipeButton(page).click()
   await expect(page).toHaveURL(/\/recettes\/nouvelle$/)
   for (const [key, value] of Object.entries(values)) await field(page, FIELDS[key]).fill(value)
   await saveButton(page).click()
+}
+
+// Crée la recette puis revient à la liste
+async function createRecipe(page, values) {
+  await submitRecipe(page, values)
+  await backToList(page)
 }
 
 test.beforeEach(async ({ page }) => {
@@ -100,7 +106,7 @@ test('modifie une recette', async ({ page }) => {
   await field(page, 'Description').fill('Nouvelle description')
   await saveButton(page).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  await backToList(page)
   await expect(recipeRow(page, 'Avant')).toHaveCount(0)
   await expect(recipeRow(page, 'Après')).toContainText('Nouvelle description')
   await expect(recipeRow(page, 'Après')).not.toContainText('portion')
@@ -126,16 +132,18 @@ test('renommer une recette conserve ses autres champs', async ({ page, request, 
   await expect(field(page, 'Titre')).toHaveValue(full.title)
   await field(page, 'Titre').fill('Tarte renommée')
   await saveButton(page).click()
+  await backToList(page)
   await expect(recipeRow(page, 'Tarte renommée')).toBeVisible()
 
   const saved = await (await request.get(`/api/recipes/${created.id}`, { headers })).json()
   expect(saved).toMatchObject({ ...full, title: 'Tarte renommée' })
 })
 
-test('ouvre le formulaire en cliquant sur le titre', async ({ page }) => {
+test('ouvre la fiche en cliquant sur le titre', async ({ page }) => {
   await createRecipe(page, { title: 'Gratin' })
   await recipeRow(page, 'Gratin').getByRole('link', { name: 'Gratin' }).click()
-  await expect(field(page, 'Titre')).toHaveValue('Gratin')
+  await expect(page).toHaveURL(/\/recettes\/\d+$/)
+  await expect(page.getByRole('heading', { name: 'Gratin', level: 1 })).toBeVisible()
 })
 
 test('annule une modification', async ({ page }) => {
@@ -144,7 +152,9 @@ test('annule une modification', async ({ page }) => {
   await field(page, 'Titre').fill('Autre titre')
   await page.getByRole('link', { name: 'Annuler' }).click()
 
-  await expect(page).toHaveURL(/\/$/)
+  // Retour à la fiche, sans modification
+  await expect(page.getByRole('heading', { name: 'Inchangée', level: 1 })).toBeVisible()
+  await backToList(page)
   await expect(recipeRow(page, 'Inchangée')).toBeVisible()
   await expect(recipeRow(page, 'Autre titre')).toHaveCount(0)
 })
@@ -171,7 +181,7 @@ test('supprime une recette après confirmation', async ({ page }) => {
 test('affiche une erreur si l’API refuse la saisie, sans la perdre', async ({ page }) => {
   // Caractère d'inversion du sens d'écriture (U+202E), refusé par l'API
   const invalidTitle = 'facture\u202eFDP.exe'
-  await createRecipe(page, { title: invalidTitle, description: 'Description conservée' })
+  await submitRecipe(page, { title: invalidTitle, description: 'Description conservée' })
 
   await expect(page.getByRole('alert')).toContainText('Le titre est invalide')
   await expect(page.getByRole('alert')).toContainText('caractères de direction interdits')
@@ -181,7 +191,7 @@ test('affiche une erreur si l’API refuse la saisie, sans la perdre', async ({ 
 })
 
 test('affiche une erreur lisible pour un nombre hors limites', async ({ page }) => {
-  await createRecipe(page, { title: 'Banquet', servings: '500' })
+  await submitRecipe(page, { title: 'Banquet', servings: '500' })
   await expect(page.getByRole('alert')).toContainText(
     'Le nombre de portions ne doit pas dépasser 100.',
   )
@@ -192,7 +202,7 @@ test('affiche une erreur si le serveur ne répond pas', async ({ page }) => {
   await page.route('**/api/recipes', (route) =>
     route.request().method() === 'POST' ? route.fulfill({ status: 500 }) : route.continue(),
   )
-  await createRecipe(page, { title: 'Pendant la panne' })
+  await submitRecipe(page, { title: 'Pendant la panne' })
 
   await expect(page.getByRole('alert')).toContainText('Erreur du serveur')
   await expect(field(page, 'Titre')).toHaveValue('Pendant la panne')

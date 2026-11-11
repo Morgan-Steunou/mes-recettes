@@ -28,11 +28,10 @@ const stack = [
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-2);
+  color: var(--accent);
 }
 h1 {
-  font-size: clamp(2rem, 5vw, 2.6rem);
-  font-weight: 800;
+  font-size: clamp(2.2rem, 5vw, 3rem);
 }
 .subtitle {
   margin-top: 0.4rem;
@@ -56,7 +55,7 @@ h1 {
 }
 .tech:hover {
   transform: translateY(-2px);
-  border-color: rgba(139, 92, 246, 0.45);
+  border-color: var(--accent);
 }
 .role {
   font-size: 0.75rem;
@@ -65,11 +64,10 @@ h1 {
   letter-spacing: 0.08em;
 }
 .tech-name {
-  font-size: 1.15rem;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent);
 }
 .detail {
   font-size: 0.875rem;

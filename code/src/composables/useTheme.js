@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 // Appliqué via l'attribut data-theme de <html> (les couleurs sont dans assets/main.css).
 // Le choix de l'utilisateur est mémorisé ; sans choix, on suit la préférence du système.
 const STORAGE_KEY = 'mes-recettes.theme'
-const THEME_COLORS = { dark: '#07090f', light: '#f5f6fb' }
+const THEME_COLORS = { dark: '#171310', light: '#f7f3ec' }
 
 const root = document.documentElement
 const systemLight = window.matchMedia('(prefers-color-scheme: light)')
@@ -19,7 +19,7 @@ function savedTheme() {
 }
 
 // Valeur initiale : déjà posée par le script de index.html
-const theme = ref(root.dataset.theme === 'light' ? 'light' : 'dark')
+const theme = ref(root.dataset.theme === 'dark' ? 'dark' : 'light')
 
 function apply(value) {
   theme.value = value

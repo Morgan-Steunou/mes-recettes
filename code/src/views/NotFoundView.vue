@@ -21,14 +21,11 @@ import AppIcon from '@/components/AppIcon.vue'
 }
 .code {
   font-size: clamp(5rem, 18vw, 8rem);
-  font-weight: 900;
+  font-family: var(--font-display);
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.05em;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 10px 30px rgba(139, 92, 246, 0.35));
+  letter-spacing: -0.03em;
+  color: var(--accent);
 }
 .subtitle {
   margin-bottom: 1rem;

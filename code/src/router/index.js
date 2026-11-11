@@ -17,6 +17,13 @@ const router = createRouter({
     },
     {
       // :id uniquement numérique (sinon page introuvable)
+      path: '/recettes/:id(\\d+)',
+      name: 'recipe-detail',
+      component: () => import('@/views/RecipeDetailView.vue'),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/recettes/:id(\\d+)/modifier',
       name: 'recipe-edit',
       component: () => import('@/views/RecipeFormView.vue'),
