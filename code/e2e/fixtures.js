@@ -19,10 +19,10 @@ export async function getToken(request, user = TEST_USER.main) {
   return (await res.json()).access_token
 }
 
-export async function clearItems(request, token) {
+export async function clearRecipes(request, token) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
-  const items = await (await request.get('/api/items', { headers })).json()
-  for (const item of items) await request.delete(`/api/items/${item.id}`, { headers })
+  const recipes = await (await request.get('/api/recipes', { headers })).json()
+  for (const recipe of recipes) await request.delete(`/api/recipes/${recipe.id}`, { headers })
 }
 
 export const test = base.extend({
@@ -36,10 +36,10 @@ export const test = base.extend({
   },
 
   // Token du compte principal (null si les comptes sont désactivés),
-  // avec sa liste d'items vidée avant chaque test
+  // avec sa liste de recettes vidée avant chaque test
   token: async ({ request, authEnabled }, use) => {
     const token = authEnabled ? await getToken(request) : null
-    await clearItems(request, token)
+    await clearRecipes(request, token)
     await use(token)
   },
 

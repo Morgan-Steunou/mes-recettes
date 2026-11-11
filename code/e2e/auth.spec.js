@@ -50,7 +50,7 @@ test.describe('déconnecté', () => {
   })
 })
 
-test('se déconnecte et ne peut plus accéder à ses items', async ({ page }) => {
+test('se déconnecte et ne peut plus accéder à ses recettes', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
 
@@ -77,25 +77,28 @@ test('renvoie vers la connexion quand le token n’est plus valide', async ({ pa
   await expect(page.getByText('Votre session a expiré')).toBeVisible()
 })
 
-test('chaque utilisateur ne voit que ses propres items', async ({ page, request }) => {
-  // Bob crée un item par l'API
+test('chaque utilisateur ne voit que ses propres recettes', async ({ page, request }) => {
+  // Bob crée une recette par l'API
   const bobToken = await getToken(request, TEST_USER.other)
   const headers = { Authorization: `Bearer ${bobToken}` }
-  const created = await request.post('/api/items', { headers, data: { name: 'Secret de Bob' } })
+  const created = await request.post('/api/recipes', {
+    headers,
+    data: { title: 'Secret de Bob' },
+  })
   expect(created.ok()).toBeTruthy()
-  const bobItem = await created.json()
+  const bobRecipe = await created.json()
 
   try {
     // Alice (connectée dans la page) ne le voit pas
     await page.goto('/')
-    await expect(page.getByText('Aucun item pour le moment.')).toBeVisible()
+    await expect(page.getByText('Aucune recette pour le moment.')).toBeVisible()
     await expect(page.getByText('Secret de Bob')).toHaveCount(0)
   } finally {
-    await request.delete(`/api/items/${bobItem.id}`, { headers })
+    await request.delete(`/api/recipes/${bobRecipe.id}`, { headers })
   }
 })
 
 test('l’API refuse les requêtes sans token', async ({ request }) => {
-  const res = await request.get('/api/items')
+  const res = await request.get('/api/recipes')
   expect(res.status()).toBe(401)
 })

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     templates_dir: Path = CODE_DIR / "templates"
 
-    # Comptes utilisateurs. Désactivés : l'application est ouverte sans connexion et les items
+    # Comptes utilisateurs. Désactivés : l'application est ouverte sans connexion et les recettes
     # n'ont pas de propriétaire. AUTH_ENABLED=true les réactive (voir README, « Comptes »).
     auth_enabled: bool = False
 

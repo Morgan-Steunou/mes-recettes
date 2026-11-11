@@ -1,43 +1,43 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useItemsStore } from '@/stores/items'
+import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
-import ItemList from '@/components/ItemList.vue'
+import RecipeList from '@/components/RecipeList.vue'
 
-const store = useItemsStore()
-const { items, loading, error, actionError } = storeToRefs(store)
-const newName = ref('')
+const store = useRecipesStore()
+const { recipes, loading, error, actionError } = storeToRefs(store)
+const newTitle = ref('')
 
 async function submit() {
-  if (!newName.value.trim()) return
+  if (!newTitle.value.trim()) return
   // Le texte saisi est conservé si l'ajout échoue
-  if (await store.addItem(newName.value.trim())) newName.value = ''
+  if (await store.addRecipe(newTitle.value.trim())) newTitle.value = ''
 }
 
-onMounted(store.fetchItems)
+onMounted(store.fetchRecipes)
 </script>
 
 <template>
   <section class="hero">
     <div>
-      <p class="eyebrow">Tableau de bord</p>
+      <p class="eyebrow">Mon carnet</p>
       <h1>Accueil</h1>
-      <p class="subtitle">Ajoutez, renommez et organisez vos items.</p>
+      <p class="subtitle">Ajoutez, renommez et organisez vos recettes.</p>
     </div>
     <span v-if="!loading && !error" class="count" aria-live="polite">
-      <strong>{{ items.length }}</strong> item{{ items.length > 1 ? 's' : '' }}
+      <strong>{{ recipes.length }}</strong> recette{{ recipes.length > 1 ? 's' : '' }}
     </span>
   </section>
 
   <form class="add card" @submit.prevent="submit">
     <span class="add-icon" aria-hidden="true"><AppIcon name="plus" /></span>
     <input
-      v-model="newName"
+      v-model="newTitle"
       class="add-input"
-      maxlength="100"
-      placeholder="Nom de l'item"
-      aria-label="Nom du nouvel item"
+      maxlength="150"
+      placeholder="Titre de la recette"
+      aria-label="Titre de la nouvelle recette"
     />
     <button type="submit" class="btn"><AppIcon name="plus" /> Ajouter</button>
   </form>
@@ -64,7 +64,7 @@ onMounted(store.fetchItems)
     <AppIcon name="alert" />
     <span class="alert-text">{{ error }}</span>
   </div>
-  <ItemList v-else :items="items" @remove="store.removeItem" @update="store.updateItem" />
+  <RecipeList v-else :recipes="recipes" @remove="store.removeRecipe" @update="store.updateRecipe" />
 </template>
 
 <style scoped>

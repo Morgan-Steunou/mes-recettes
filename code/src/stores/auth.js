@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api, configureAuth } from '@/services/api'
-import { useItemsStore } from '@/stores/items'
+import { useRecipesStore } from '@/stores/recipes'
 
 // Le token est gardé dans le navigateur pour rester connecté après un rechargement.
 // Il expire côté serveur (60 min par défaut) ; l'interface le jette aussi à son expiration.
@@ -71,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     setSession(null)
     user.value = null
-    useItemsStore().reset()
+    useRecipesStore().reset()
   }
 
   return { enabled, session, user, isAuthenticated, loadMode, login, fetchMe, logout }

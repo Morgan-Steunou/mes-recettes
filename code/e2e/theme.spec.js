@@ -45,8 +45,8 @@ test('aucun débordement horizontal sur mobile', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 760 })
   await page.goto('/')
   await page
-    .getByPlaceholder("Nom de l'item")
-    .fill('Un nom d’item assez long pour remplir la ligne')
+    .getByPlaceholder('Titre de la recette')
+    .fill('Un titre de recette assez long pour remplir la ligne')
   await page.getByRole('button', { name: 'Ajouter' }).click()
   await expect(page.locator('.list li')).toHaveCount(1)
 
@@ -54,6 +54,6 @@ test('aucun débordement horizontal sur mobile', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
   expect(overflow).toBe(0)
-  const item = await page.locator('.list li').boundingBox()
-  expect(item.x + item.width).toBeLessThanOrEqual(375)
+  const row = await page.locator('.list li').boundingBox()
+  expect(row.x + row.width).toBeLessThanOrEqual(375)
 })

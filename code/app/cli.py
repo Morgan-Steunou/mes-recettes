@@ -47,11 +47,11 @@ def create_user(username: str, password_stdin: bool, if_not_exists: bool = False
         print(f"Compte « {user.username} » créé (id {user.id}).")
         if not settings.auth_enabled:
             print("Comptes désactivés : mettre AUTH_ENABLED=true dans le .env pour s'en servir.")
-        # Les items créés avant la mise en place des comptes reviennent au premier compte
+        # Les recettes créées avant la mise en place des comptes reviennent au premier compte
         if service.count() == 1:
-            claimed = service.claim_orphan_items(user)
+            claimed = service.claim_orphan_recipes(user)
             if claimed:
-                print(f"{claimed} item(s) existant(s) rattaché(s) à ce compte.")
+                print(f"{claimed} recette(s) existante(s) rattachée(s) à ce compte.")
 
 
 def main() -> None:
