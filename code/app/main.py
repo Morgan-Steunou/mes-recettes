@@ -2,8 +2,10 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -28,6 +30,14 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.api_prefix)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(_: Request, exc: RequestValidationError):
+    """Erreurs 422 sans la valeur envoyée (« input ») : on ne renvoie pas la saisie au client,
+    et une valeur non représentable en JSON (Infinity, NaN) ne provoque pas d'erreur 500."""
+    errors = [{k: v for k, v in error.items() if k != "input"} for error in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

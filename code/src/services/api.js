@@ -9,6 +9,19 @@ const FIELD_LABELS = {
   prep_time_minutes: 'Le temps de préparation',
   cook_time_minutes: 'Le temps de cuisson',
   steps: 'Les étapes',
+  ingredients: 'La liste des ingrédients',
+}
+
+// Champs d'un ingrédient (erreur située en ['body', 'ingredients', <rang>, <champ>])
+const INGREDIENT_LABELS = { name: 'Le nom', quantity: 'La quantité', unit: "L'unité" }
+
+function fieldLabel(loc = []) {
+  const index = loc.indexOf('ingredients')
+  if (index !== -1 && typeof loc[index + 1] === 'number') {
+    const label = INGREDIENT_LABELS[loc[index + 2]] || 'Un champ'
+    return `${label} de l'ingrédient n° ${loc[index + 1] + 1}`
+  }
+  return FIELD_LABELS[loc.at(-1)] || 'Un champ'
 }
 
 // Branchés par le store d'authentification (évite une dépendance circulaire)
@@ -22,13 +35,17 @@ export function configureAuth({ tokenProvider, unauthorizedHandler }) {
 
 // Traduit une erreur de validation FastAPI (422) en message lisible
 function validationMessage(error) {
-  const field = FIELD_LABELS[error.loc?.at(-1)] || 'Un champ'
+  const field = fieldLabel(error.loc)
   switch (error.type) {
     case 'missing':
     case 'string_too_short':
       return `${field} ne peut pas être vide.`
     case 'string_too_long':
       return `${field} ne doit pas dépasser ${error.ctx?.max_length} caractères.`
+    case 'too_long':
+      return `${field} ne doit pas dépasser ${error.ctx?.max_length} éléments.`
+    case 'greater_than':
+      return `${field} doit être supérieure à ${error.ctx?.gt}.`
     case 'greater_than_equal':
       return `${field} doit être au moins ${error.ctx?.ge}.`
     case 'less_than_equal':
@@ -36,6 +53,9 @@ function validationMessage(error) {
     case 'int_parsing':
     case 'int_from_float':
       return `${field} doit être un nombre entier.`
+    case 'float_parsing':
+    case 'finite_number':
+      return `${field} doit être un nombre.`
     case 'value_error':
       return `${field} est invalide : ${error.msg.replace(/^Value error, /, '').toLowerCase()}.`
     default:
