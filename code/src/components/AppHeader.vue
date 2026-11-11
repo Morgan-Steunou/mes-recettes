@@ -68,6 +68,8 @@ function logout() {
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  /* Jamais sur deux lignes : en manque de place, les libellés sont masqués (voir plus bas) */
+  white-space: nowrap;
 }
 .brand:hover {
   text-decoration: none;
@@ -103,6 +105,7 @@ function logout() {
   font-weight: 500;
   color: var(--text-muted);
   border-radius: 999px;
+  white-space: nowrap;
   transition:
     color var(--transition),
     background var(--transition);
@@ -132,9 +135,25 @@ function logout() {
   border-radius: 999px;
 }
 
-@media (max-width: 720px) {
+/* Nom d'utilisateur et libellé « Se déconnecter » masqués tant que la place manque */
+@media (max-width: 860px) {
   .user,
   .logout .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+/* Liens réduits à leur icône dès 600 px, pour laisser la place au bouton de déconnexion
+   quand les comptes sont activés ; le libellé reste lu par les lecteurs d'écran */
+@media (max-width: 600px) {
+  .link {
+    padding: 0.45rem 0.6rem;
+  }
+  .link-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -149,18 +168,6 @@ function logout() {
   }
   .right {
     gap: 0.4rem;
-  }
-  .link {
-    padding: 0.45rem 0.6rem;
-  }
-  /* Liens réduits à leur icône ; le libellé reste lu par les lecteurs d'écran */
-  .link-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
   }
 }
 </style>

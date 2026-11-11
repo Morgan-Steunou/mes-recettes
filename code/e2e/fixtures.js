@@ -70,3 +70,27 @@ export const test = base.extend({
 })
 
 export { expect }
+
+// En-tête sur une seule ligne, sans débordement, à plusieurs largeurs d'écran
+// (marque et liens ne passent jamais à la ligne ; voir AppHeader.vue)
+export async function expectHeaderFits(page) {
+  for (const width of [360, 481, 560, 600, 601, 680, 721, 800, 860, 861, 960, 1024]) {
+    await page.setViewportSize({ width, height: 700 })
+    const result = await page.evaluate(() => {
+      const nav = document.querySelector('.nav').getBoundingClientRect()
+      const brand = document.querySelector('.brand').getBoundingClientRect()
+      const right = document.querySelector('.right').getBoundingClientRect()
+      return {
+        navHeight: Math.round(nav.height),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        // Espace entre la marque et le bloc de droite (négatif si chevauchement)
+        gap: Math.round(right.left - brand.right),
+        rightEdge: Math.round(right.right),
+      }
+    })
+    expect(result.navHeight, `hauteur à ${width} px`).toBe(64)
+    expect(result.overflow, `débordement à ${width} px`).toBe(0)
+    expect(result.gap, `chevauchement à ${width} px`).toBeGreaterThan(0)
+    expect(result.rightEdge, `bord droit à ${width} px`).toBeLessThanOrEqual(width)
+  }
+}
