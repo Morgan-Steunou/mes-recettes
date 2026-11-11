@@ -77,8 +77,8 @@ def test_password_is_hashed_in_database(session_factory, create_user):
 
 @pytest.mark.parametrize(
     "method, path",
-    [("get", "/api/items"), ("post", "/api/items"), ("get", "/api/items/1"),
-     ("put", "/api/items/1"), ("delete", "/api/items/1"), ("get", "/api/auth/me")],
+    [("get", "/api/recipes"), ("post", "/api/recipes"), ("get", "/api/recipes/1"),
+     ("put", "/api/recipes/1"), ("delete", "/api/recipes/1"), ("get", "/api/auth/me")],
 )
 def test_protected_routes_require_token(anon_client, method, path):
     r = getattr(anon_client, method)(path)
@@ -108,41 +108,42 @@ def test_rejects_invalid_tokens(anon_client, create_user):
         "alg none": jwt.encode(valid, None, algorithm="none"),
     }
     for label, token in bad_tokens.items():
-        r = anon_client.get("/api/items", headers=bearer(token))
+        r = anon_client.get("/api/recipes", headers=bearer(token))
         assert r.status_code == 401, label
 
 
 def test_token_stops_working_when_user_is_deactivated(client, session_factory):
     from app.models.user import UserModel
 
-    assert client.get("/api/items").status_code == 200
+    assert client.get("/api/recipes").status_code == 200
     with session_factory() as db:
         db.query(UserModel).filter_by(username="alice").update({"is_active": False})
         db.commit()
-    assert client.get("/api/items").status_code == 401
+    assert client.get("/api/recipes").status_code == 401
 
 
 # --- Isolation entre utilisateurs -------------------------------------------------------
 
 
-def test_users_only_see_their_own_items(client_for):
+def test_users_only_see_their_own_recipes(client_for):
     alice = client_for("alice")
     bob = client_for("bob")
-    item_id = alice.post("/api/items", json={"name": "Item d'Alice"}).json()["id"]
-    bob.post("/api/items", json={"name": "Item de Bob"})
+    recipe_id = alice.post("/api/recipes", json={"title": "Recette d'Alice"}).json()["id"]
+    bob.post("/api/recipes", json={"title": "Recette de Bob"})
 
-    assert [i["name"] for i in alice.get("/api/items").json()] == ["Item d'Alice"]
-    assert [i["name"] for i in bob.get("/api/items").json()] == ["Item de Bob"]
+    assert [r["title"] for r in alice.get("/api/recipes").json()] == ["Recette d'Alice"]
+    assert [r["title"] for r in bob.get("/api/recipes").json()] == ["Recette de Bob"]
 
-    # Bob ne peut ni lire, ni modifier, ni supprimer l'item d'Alice : il « n'existe pas » pour lui
-    assert bob.get(f"/api/items/{item_id}").status_code == 404
-    assert bob.put(f"/api/items/{item_id}", json={"name": "Piraté"}).status_code == 404
-    assert bob.delete(f"/api/items/{item_id}").status_code == 404
-    assert alice.get(f"/api/items/{item_id}").json()["name"] == "Item d'Alice"
+    # Bob ne peut ni lire, ni modifier, ni supprimer la recette d'Alice :
+    # elle « n'existe pas » pour lui
+    assert bob.get(f"/api/recipes/{recipe_id}").status_code == 404
+    assert bob.put(f"/api/recipes/{recipe_id}", json={"title": "Piraté"}).status_code == 404
+    assert bob.delete(f"/api/recipes/{recipe_id}").status_code == 404
+    assert alice.get(f"/api/recipes/{recipe_id}").json()["title"] == "Recette d'Alice"
 
 
 def test_owner_cannot_be_forced_through_payload(client):
-    r = client.post("/api/items", json={"name": "ok", "owner_id": 999})
+    r = client.post("/api/recipes", json={"title": "ok", "owner_id": 999})
     assert r.status_code == 422
 
 
@@ -158,18 +159,18 @@ def test_app_refuses_to_start_without_secret_key(monkeypatch):
         Settings(_env_file=None, secret_key="trop-courte")
 
 
-def test_first_account_claims_items_created_before_authentication(session_factory, client_for):
-    from app.models.item import ItemModel
+def test_first_account_claims_recipes_created_before_authentication(session_factory, client_for):
+    from app.models.recipe import RecipeModel
     from app.services.user_service import UserService
 
-    # Item créé avant l'authentification : sans propriétaire, invisible pour tous
+    # Recette créée avant l'authentification : sans propriétaire, invisible pour tous
     with session_factory() as db:
-        db.add(ItemModel(name="Ancien item"))
+        db.add(RecipeModel(title="Ancienne recette"))
         db.commit()
     alice = client_for("alice")
-    assert alice.get("/api/items").json() == []
+    assert alice.get("/api/recipes").json() == []
 
     with session_factory() as db:
         service = UserService(db)
-        assert service.claim_orphan_items(service.get_by_username("alice")) == 1
-    assert [i["name"] for i in alice.get("/api/items").json()] == ["Ancien item"]
+        assert service.claim_orphan_recipes(service.get_by_username("alice")) == 1
+    assert [r["title"] for r in alice.get("/api/recipes").json()] == ["Ancienne recette"]

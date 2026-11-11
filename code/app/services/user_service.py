@@ -3,7 +3,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
-from app.models.item import ItemModel
+from app.models.recipe import RecipeModel
 from app.models.user import UserModel
 from app.schemas.user import UserCreate
 
@@ -45,10 +45,10 @@ class UserService:
         self.db.commit()
         return user
 
-    def claim_orphan_items(self, user: UserModel) -> int:
-        """Rattache à cet utilisateur les items créés avant la mise en place des comptes."""
+    def claim_orphan_recipes(self, user: UserModel) -> int:
+        """Rattache à cet utilisateur les recettes créées avant la mise en place des comptes."""
         result = self.db.execute(
-            update(ItemModel).where(ItemModel.owner_id.is_(None)).values(owner_id=user.id)
+            update(RecipeModel).where(RecipeModel.owner_id.is_(None)).values(owner_id=user.id)
         )
         self.db.commit()
         return result.rowcount

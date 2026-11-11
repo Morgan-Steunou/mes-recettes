@@ -39,7 +39,7 @@ async function submit() {
     <form class="panel card" @submit.prevent="submit">
       <span class="badge" aria-hidden="true"><AppIcon name="lock" /></span>
       <h1>Connexion</h1>
-      <p class="subtitle">Connectez-vous pour accéder à vos items.</p>
+      <p class="subtitle">Connectez-vous pour accéder à vos recettes.</p>
 
       <p v-if="route.query.expired && !error" class="notice">
         Votre session a expiré, veuillez vous reconnecter.

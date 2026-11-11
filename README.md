@@ -2,7 +2,7 @@
 
 Application web de gestion de recettes : interface **Vue 3** + API **FastAPI** + templates **Jinja2** + base **PostgreSQL**, dans un seul projet.
 
-Déjà en place : comptes utilisateurs et authentification par token (désactivés pour l'instant, voir « Comptes et connexion »), exemple de ressource (« items ») avec validation sécurisée des champs texte, migrations Alembic, design clair / sombre responsive, tests pytest et Playwright, lint automatique à chaque commit, Docker.
+Déjà en place : comptes utilisateurs et authentification par token (désactivés pour l'instant, voir « Comptes et connexion »), fiches recettes (titre, description, portions, temps, étapes) avec validation sécurisée des champs, migrations Alembic, design clair / sombre responsive, tests pytest et Playwright, lint automatique à chaque commit, Docker.
 
 ## Premiers pas
 
@@ -10,7 +10,7 @@ Déjà en place : comptes utilisateurs et authentification par token (désactiv�
 
 2. **Installer et lancer** (voir « Démarrage rapide »), activer le hook avec `pre-commit install`.
 
-3. **Remplacer l'exemple** « items » par les ressources de l'application (recettes : modèle, migration, schéma, service, route, page Vue, tests).
+3. **Suivre le plan de développement** : `docs/plan.md`.
 
 Dans Docker, l'application utilise les ports 8001 (API), 5174 (interface) et 5434 (base) de la machine ; sans Docker, 8000 et 5173. Pour les changer, modifier `docker/docker-compose.yml` (et `code/vite.config.js` pour le serveur de dev hors Docker).
 
@@ -84,13 +84,13 @@ Avec Docker, depuis la racine : `docker compose -f docker/docker-compose.yml up 
 
 ## Comptes et connexion
 
-**Les comptes sont désactivés pour l'instant** (`AUTH_ENABLED=false` dans le `.env`) : l'application est ouverte sans connexion, la page de connexion et les routes `/api/auth` sont masquées, et les items n'ont pas de propriétaire. Tout le code des comptes reste en place.
+**Les comptes sont désactivés pour l'instant** (`AUTH_ENABLED=false` dans le `.env`) : l'application est ouverte sans connexion, la page de connexion et les routes `/api/auth` sont masquées, et les recettes n'ont pas de propriétaire. Tout le code des comptes reste en place.
 
 **Réactiver les comptes :**
 
 1. Mettre `AUTH_ENABLED=true` dans le `.env`.
 2. Redémarrer l'API (avec Docker : `docker compose -f docker/docker-compose.yml up -d api`). L'interface lit le réglage auprès de l'API, il suffit de recharger la page.
-3. Créer son compte (ci-dessous). Le premier compte créé dans une base récupère les items créés sans compte.
+3. Créer son compte (ci-dessous). Le premier compte créé dans une base récupère les recettes créées sans compte.
 
 L'API est alors protégée : il faut un compte pour utiliser l'application. Il n'y a pas d'inscription publique, les comptes se créent en ligne de commande (le mot de passe est demandé de façon masquée, 8 caractères minimum) :
 
@@ -102,13 +102,13 @@ python -m app.cli create-user mon-identifiant
 docker compose -f docker/docker-compose.yml exec api python -m app.cli create-user mon-identifiant
 ```
 
-Le premier compte créé dans une base récupère les items créés sans compte. Chaque utilisateur ne voit ensuite que ses propres items.
+Le premier compte créé dans une base récupère les recettes créées sans compte. Chaque utilisateur ne voit ensuite que ses propres recettes.
 
 Utiliser l'API directement : demander un token, puis l'envoyer dans l'en-tête `Authorization` de chaque requête (valable 60 minutes). La page `/docs` propose aussi un bouton **Authorize**.
 
 ```bash
 curl -X POST http://localhost:8000/api/auth/token -d "username=mon-identifiant" -d "password=..."
-curl http://localhost:8000/api/items -H "Authorization: Bearer <access_token>"
+curl http://localhost:8000/api/recipes -H "Authorization: Bearer <access_token>"
 ```
 
 ## Administration de PostgreSQL

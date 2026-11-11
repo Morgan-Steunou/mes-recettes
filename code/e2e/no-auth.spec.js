@@ -9,7 +9,7 @@ test('ouvre l’accueil directement, sans connexion', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
-  await expect(page.getByText('Aucun item pour le moment.')).toBeVisible()
+  await expect(page.getByText('Aucune recette pour le moment.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Se déconnecter' })).toHaveCount(0)
 })
 
@@ -20,6 +20,6 @@ test('la page de connexion renvoie vers l’accueil', async ({ page }) => {
 })
 
 test('l’API accepte les requêtes sans token', async ({ request }) => {
-  const res = await request.get('/api/items')
+  const res = await request.get('/api/recipes')
   expect(res.status()).toBe(200)
 })

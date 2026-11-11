@@ -3,19 +3,19 @@ import { nextTick, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
-  items: { type: Array, required: true },
+  recipes: { type: Array, required: true },
   // Reçu via @update="..." : déclaré en prop pour pouvoir attendre son résultat
   onUpdate: { type: Function, default: null },
 })
 const emit = defineEmits(['remove'])
 
 const editingId = ref(null)
-const editName = ref('')
+const editTitle = ref('')
 const editInput = ref(null)
 
-async function startEdit(item) {
-  editingId.value = item.id
-  editName.value = item.name
+async function startEdit(recipe) {
+  editingId.value = recipe.id
+  editTitle.value = recipe.title
   await nextTick()
   editInput.value?.[0]?.focus()
 }
@@ -24,56 +24,56 @@ function cancelEdit() {
   editingId.value = null
 }
 
-async function saveEdit(item) {
-  const name = editName.value.trim()
-  if (!name) return
+async function saveEdit(recipe) {
+  const title = editTitle.value.trim()
+  if (!title) return
   // En cas d'échec, le champ reste ouvert avec le texte saisi
-  if (name === item.name || (await props.onUpdate?.(item.id, { name }))) cancelEdit()
+  if (title === recipe.title || (await props.onUpdate?.(recipe.id, { title }))) cancelEdit()
 }
 
-// Pastille colorée propre à chaque item (teinte dérivée de son id)
-function avatarStyle(item) {
-  const hue = (item.id * 47 + 260) % 360
+// Pastille colorée propre à chaque recette (teinte dérivée de son id)
+function avatarStyle(recipe) {
+  const hue = (recipe.id * 47 + 260) % 360
   return {
     background: `linear-gradient(135deg, hsl(${hue} 80% 62%), hsl(${(hue + 50) % 360} 85% 55%))`,
   }
 }
 
-function initial(name) {
-  return [...name.trim()][0]?.toUpperCase() ?? '?'
+function initial(title) {
+  return [...title.trim()][0]?.toUpperCase() ?? '?'
 }
 </script>
 
 <template>
-  <div v-if="!items.length" class="empty card">
+  <div v-if="!recipes.length" class="empty card">
     <span class="empty-icon" aria-hidden="true"><AppIcon name="inbox" /></span>
-    <p class="empty-title">Aucun item pour le moment.</p>
-    <p class="empty-hint">Ajoutez votre premier item avec le champ ci-dessus.</p>
+    <p class="empty-title">Aucune recette pour le moment.</p>
+    <p class="empty-hint">Ajoutez votre première recette avec le champ ci-dessus.</p>
   </div>
 
-  <TransitionGroup v-else tag="ul" name="item" class="list">
+  <TransitionGroup v-else tag="ul" name="recipe" class="list">
     <li
-      v-for="item in items"
-      :key="item.id"
-      class="item"
-      :class="{ editing: editingId === item.id }"
+      v-for="recipe in recipes"
+      :key="recipe.id"
+      class="recipe"
+      :class="{ editing: editingId === recipe.id }"
     >
-      <span class="avatar" :style="avatarStyle(item)" aria-hidden="true">{{
-        initial(item.name)
+      <span class="avatar" :style="avatarStyle(recipe)" aria-hidden="true">{{
+        initial(recipe.title)
       }}</span>
 
       <form
-        v-if="editingId === item.id"
+        v-if="editingId === recipe.id"
         class="row"
-        @submit.prevent="saveEdit(item)"
+        @submit.prevent="saveEdit(recipe)"
         @keydown.esc="cancelEdit"
       >
         <input
           ref="editInput"
-          v-model="editName"
+          v-model="editTitle"
           class="edit-input"
-          maxlength="100"
-          aria-label="Nouveau nom"
+          maxlength="150"
+          aria-label="Nouveau titre"
         />
         <div class="actions">
           <button type="submit" class="btn btn-sm">
@@ -86,12 +86,12 @@ function initial(name) {
       </form>
 
       <div v-else class="row">
-        <span class="name">{{ item.name }}</span>
+        <span class="name">{{ recipe.title }}</span>
         <div class="actions">
-          <button class="btn-ghost" @click="startEdit(item)">
+          <button class="btn-ghost" @click="startEdit(recipe)">
             <AppIcon name="pencil" /><span class="label">Modifier</span>
           </button>
-          <button class="btn-danger" @click="emit('remove', item.id)">
+          <button class="btn-danger" @click="emit('remove', recipe.id)">
             <AppIcon name="trash" /><span class="label">Supprimer</span>
           </button>
         </div>
@@ -105,14 +105,14 @@ function initial(name) {
   position: relative;
   display: grid;
   /* minmax(0, 1fr) : la colonne peut rétrécir sous la largeur du contenu
-     (sinon un nom long sur une ligne fait déborder la carte sur mobile) */
+     (sinon un titre long sur une ligne fait déborder la carte sur mobile) */
   grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.item {
+.recipe {
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -126,11 +126,11 @@ function initial(name) {
     border-color var(--transition),
     transform var(--transition);
 }
-.item:hover {
+.recipe:hover {
   background: var(--surface-hover);
   border-color: var(--border-strong);
 }
-.item.editing {
+.recipe.editing {
   border-color: rgba(139, 92, 246, 0.55);
   box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
 }
@@ -172,12 +172,12 @@ function initial(name) {
 }
 /* Les actions n'apparaissent pleinement qu'au survol (sur ordinateur) */
 @media (hover: hover) {
-  .item:not(.editing) .actions {
+  .recipe:not(.editing) .actions {
     opacity: 0.55;
     transition: opacity var(--transition);
   }
-  .item:hover .actions,
-  .item:focus-within .actions {
+  .recipe:hover .actions,
+  .recipe:focus-within .actions {
     opacity: 1;
   }
 }
@@ -210,26 +210,26 @@ function initial(name) {
   color: var(--text-muted);
 }
 
-/* Animations d'apparition / disparition des items */
-.item-enter-active,
-.item-leave-active {
+/* Animations d'apparition / disparition des recettes */
+.recipe-enter-active,
+.recipe-leave-active {
   transition:
     opacity 220ms ease,
     transform 220ms ease;
 }
-.item-enter-from {
+.recipe-enter-from {
   opacity: 0;
   transform: translateY(8px) scale(0.98);
 }
-.item-leave-to {
+.recipe-leave-to {
   opacity: 0;
   transform: translateX(16px);
 }
-.item-leave-active {
+.recipe-leave-active {
   position: absolute;
   width: 100%;
 }
-.item-move {
+.recipe-move {
   transition: transform 220ms ease;
 }
 
