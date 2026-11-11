@@ -28,6 +28,12 @@ def _check_multiline(value: str) -> str:
     return _check_chars(value, allowed="\n\r\t")
 
 
+def _empty_to_none(value: str) -> str | None:
+    # Un champ facultatif laissé vide (ou rempli d'espaces) est enregistré comme absent,
+    # pour qu'il n'y ait qu'une seule façon de dire « pas de description »
+    return value or None
+
+
 # Espaces de début / fin retirés avant la vérification de longueur
 RecipeTitle = Annotated[
     str,
@@ -38,11 +44,13 @@ RecipeDescription = Annotated[
     str,
     StringConstraints(strip_whitespace=True, max_length=2000),
     AfterValidator(_check_multiline),
+    AfterValidator(_empty_to_none),
 ]
 RecipeSteps = Annotated[
     str,
     StringConstraints(strip_whitespace=True, max_length=10000),
     AfterValidator(_check_multiline),
+    AfterValidator(_empty_to_none),
 ]
 Servings = Annotated[int, Field(ge=1, le=100)]
 # En minutes, 24 heures au maximum

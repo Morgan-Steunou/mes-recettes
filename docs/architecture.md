@@ -64,7 +64,10 @@ Le schéma est géré par **Alembic** (`code/migrations/versions/`). `init_db()`
 | `router/`     | Déclaration des routes (Vue Router) |
 | `stores/`     | État global (Pinia) |
 | `services/`   | Appels à l'API |
+| `utils/`      | Fonctions d'affichage partagées (ex. durées des recettes) |
 | `assets/`     | CSS, images |
+
+Pages des recettes : `/` (liste, `HomeView`), `/recettes/nouvelle` et `/recettes/:id/modifier` (même formulaire, `RecipeFormView`). Le formulaire envoie tous les champs (un champ vide devient `null`), car la modification remplace la recette entière. La suppression demande une confirmation.
 
 ## Templates (`code/templates/`)
 Templates Jinja2 rendus par l'API : pages serveur, emails, etc.

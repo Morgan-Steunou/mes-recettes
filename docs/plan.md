@@ -7,7 +7,7 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 ## Phase 1 : Recettes manuelles
 
 - [x] **1. Fiche recette de base.** La table `recipes` remplace l'exemple « items » : titre, description, portions, temps de préparation et de cuisson, étapes en texte. API de création, lecture, modification et suppression, avec tests pytest.
-- [ ] **2. Pages liste et formulaire.** La page d'accueil liste les recettes ; formulaire de création et de modification. Test Playwright du parcours.
+- [x] **2. Pages liste et formulaire.** La page d'accueil liste les recettes ; formulaire de création et de modification. Test Playwright du parcours.
 - [ ] **3. Ingrédients structurés.** Nom, quantité et unité, liés à la recette. Lignes d'ingrédients ajoutables et supprimables dans le formulaire. Base des phases 3 et 4.
 - [ ] **4. Page détail.** Vue de lecture claire, pour cuisiner avec.
 

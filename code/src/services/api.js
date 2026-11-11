@@ -2,7 +2,14 @@
 // Le token d'accès est ajouté automatiquement (en-tête « Authorization: Bearer … »).
 const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
-const FIELD_LABELS = { name: 'Le nom', description: 'La description' }
+const FIELD_LABELS = {
+  title: 'Le titre',
+  description: 'La description',
+  servings: 'Le nombre de portions',
+  prep_time_minutes: 'Le temps de préparation',
+  cook_time_minutes: 'Le temps de cuisson',
+  steps: 'Les étapes',
+}
 
 // Branchés par le store d'authentification (évite une dépendance circulaire)
 let getToken = () => null
@@ -22,6 +29,13 @@ function validationMessage(error) {
       return `${field} ne peut pas être vide.`
     case 'string_too_long':
       return `${field} ne doit pas dépasser ${error.ctx?.max_length} caractères.`
+    case 'greater_than_equal':
+      return `${field} doit être au moins ${error.ctx?.ge}.`
+    case 'less_than_equal':
+      return `${field} ne doit pas dépasser ${error.ctx?.le}.`
+    case 'int_parsing':
+    case 'int_from_float':
+      return `${field} doit être un nombre entier.`
     case 'value_error':
       return `${field} est invalide : ${error.msg.replace(/^Value error, /, '').toLowerCase()}.`
     default:

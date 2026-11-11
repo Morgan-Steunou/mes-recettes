@@ -38,7 +38,7 @@ test.describe('déconnecté', () => {
     await login(page, TEST_USER.main)
 
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Mes recettes' })).toBeVisible()
     await expect(page.getByText(TEST_USER.main.username)).toBeVisible()
   })
 
@@ -52,7 +52,7 @@ test.describe('déconnecté', () => {
 
 test('se déconnecte et ne peut plus accéder à ses recettes', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mes recettes' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Se déconnecter' }).click()
   await expect(page).toHaveURL(/\/login/)
@@ -64,7 +64,7 @@ test('se déconnecte et ne peut plus accéder à ses recettes', async ({ page })
 
 test('renvoie vers la connexion quand le token n’est plus valide', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mes recettes' })).toBeVisible()
 
   // Token altéré (simule une session expirée ou révoquée côté serveur)
   await page.evaluate((key) => {

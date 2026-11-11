@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
@@ -7,13 +7,6 @@ import RecipeList from '@/components/RecipeList.vue'
 
 const store = useRecipesStore()
 const { recipes, loading, error, actionError } = storeToRefs(store)
-const newTitle = ref('')
-
-async function submit() {
-  if (!newTitle.value.trim()) return
-  // Le texte saisi est conservé si l'ajout échoue
-  if (await store.addRecipe(newTitle.value.trim())) newTitle.value = ''
-}
 
 onMounted(store.fetchRecipes)
 </script>
@@ -22,25 +15,20 @@ onMounted(store.fetchRecipes)
   <section class="hero">
     <div>
       <p class="eyebrow">Mon carnet</p>
-      <h1>Accueil</h1>
-      <p class="subtitle">Ajoutez, renommez et organisez vos recettes.</p>
+      <h1 class="page-title">Mes recettes</h1>
+      <p class="subtitle">
+        <template v-if="!loading && !error">
+          {{ recipes.length }} recette{{ recipes.length > 1 ? 's' : '' }} enregistrée{{
+            recipes.length > 1 ? 's' : ''
+          }}.
+        </template>
+        <template v-else>Toutes vos recettes, au même endroit.</template>
+      </p>
     </div>
-    <span v-if="!loading && !error" class="count" aria-live="polite">
-      <strong>{{ recipes.length }}</strong> recette{{ recipes.length > 1 ? 's' : '' }}
-    </span>
+    <RouterLink :to="{ name: 'recipe-new' }" class="btn">
+      <AppIcon name="plus" /> Nouvelle recette
+    </RouterLink>
   </section>
-
-  <form class="add card" @submit.prevent="submit">
-    <span class="add-icon" aria-hidden="true"><AppIcon name="plus" /></span>
-    <input
-      v-model="newTitle"
-      class="add-input"
-      maxlength="150"
-      placeholder="Titre de la recette"
-      aria-label="Titre de la nouvelle recette"
-    />
-    <button type="submit" class="btn"><AppIcon name="plus" /> Ajouter</button>
-  </form>
 
   <Transition name="fade">
     <div v-if="actionError" class="alert" role="alert">
@@ -64,7 +52,7 @@ onMounted(store.fetchRecipes)
     <AppIcon name="alert" />
     <span class="alert-text">{{ error }}</span>
   </div>
-  <RecipeList v-else :recipes="recipes" @remove="store.removeRecipe" @update="store.updateRecipe" />
+  <RecipeList v-else :recipes="recipes" @remove="store.removeRecipe" />
 </template>
 
 <style scoped>
@@ -75,105 +63,8 @@ onMounted(store.fetchRecipes)
   gap: 1rem;
   margin-bottom: 1.75rem;
 }
-.eyebrow {
-  margin-bottom: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-2);
-}
-h1 {
-  font-size: clamp(2rem, 5vw, 2.6rem);
-  font-weight: 800;
-  background: var(--heading-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.subtitle {
-  margin-top: 0.4rem;
-  color: var(--text-muted);
-}
-.count {
+.hero .btn {
   flex-shrink: 0;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-.count strong {
-  color: var(--text);
-}
-
-/* Formulaire d'ajout */
-.add {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  margin-bottom: 1.25rem;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
-.add:focus-within {
-  border-color: rgba(139, 92, 246, 0.6);
-  box-shadow:
-    var(--shadow),
-    0 0 0 4px rgba(139, 92, 246, 0.15);
-}
-.add-icon {
-  display: grid;
-  place-items: center;
-  padding-left: 0.6rem;
-  color: var(--text-faint);
-}
-.add-input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  padding-left: 0.25rem;
-}
-.add-input:focus {
-  box-shadow: none;
-}
-
-/* Messages d'erreur */
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 1.25rem;
-  padding: 0.75rem 0.9rem;
-  color: var(--danger-text);
-  background: var(--danger-soft);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius);
-}
-.alert > .icon {
-  color: var(--danger);
-}
-.alert-text {
-  flex: 1;
-  font-size: 0.925rem;
-}
-.alert-close {
-  display: grid;
-  place-items: center;
-  padding: 0.3rem;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  opacity: 0.7;
-}
-.alert-close:hover {
-  opacity: 1;
-  background: var(--danger-soft);
 }
 
 /* Chargement */
