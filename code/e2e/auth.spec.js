@@ -1,4 +1,4 @@
-import { test, expect, TEST_USER, STORAGE_KEY, getToken } from './fixtures.js'
+import { test, expect, TEST_USER, STORAGE_KEY, getToken, expectHeaderFits } from './fixtures.js'
 
 const usernameInput = (page) => page.getByLabel('Identifiant')
 const passwordInput = (page) => page.getByLabel('Mot de passe')
@@ -96,6 +96,12 @@ test('chaque utilisateur ne voit que ses propres recettes', async ({ page, reque
   } finally {
     await request.delete(`/api/recipes/${bobRecipe.id}`, { headers })
   }
+})
+
+test('l’en-tête tient sur une ligne avec le compte et la déconnexion', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Se déconnecter' })).toBeVisible()
+  await expectHeaderFits(page)
 })
 
 test('l’API refuse les requêtes sans token', async ({ request }) => {

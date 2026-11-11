@@ -91,14 +91,13 @@ async function submit() {
   width: 48px;
   height: 48px;
   font-size: 1.3rem;
-  color: #fff;
-  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  background: var(--accent);
   border-radius: 14px;
-  box-shadow: 0 8px 24px -8px rgba(139, 92, 246, 0.9);
+  box-shadow: 0 8px 20px -10px var(--accent-glow);
 }
 h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-size: 2rem;
 }
 .subtitle {
   margin-top: -0.5rem;
