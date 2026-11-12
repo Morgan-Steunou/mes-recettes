@@ -148,4 +148,18 @@ Le port 5434 du conteneur n'est ouvert que sur la machine (`127.0.0.1`), pas sur
 - S'il reste une **erreur** à corriger à la main, le commit est bloqué et l'erreur est affichée.
 - Pour passer outre exceptionnellement : `git commit --no-verify`.
 
+## Intégration continue (GitHub Actions)
+
+À chaque pull request et à chaque push sur `main`, GitHub lance `.github/workflows/ci.yml` (résultat dans l'onglet **Actions** et en bas de chaque PR) :
+
+| Job | Vérifie |
+|-----|---------|
+| Lint | `pre-commit run --all-files` : Ruff, Prettier, ESLint, caractères Trojan Source (aucune correction automatique : un fichier mal formaté fait échouer le job) |
+| Tests API | `pytest` (base SQLite en mémoire) |
+| Build de l'interface | `npm run build` |
+| Tests E2E | Playwright sur une base PostgreSQL 18 jetable, comptes désactivés puis activés (`AUTH_ENABLED=false` / `true`) ; en cas d'échec, le rapport est téléchargeable dans les artefacts de l'exécution |
+| Images Docker | Construction des images `api` et `web` (sans publication) |
+
+Aucun secret n'est nécessaire : la CI utilise ses propres valeurs de test. Pour interdire le merge d'une PR tant que la CI échoue : *Settings → Branches → Add branch protection rule* sur `main`, cocher « Require status checks to pass » et sélectionner les jobs.
+
 Voir `docs/architecture.md` pour le détail de l'organisation.
