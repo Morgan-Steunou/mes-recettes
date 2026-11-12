@@ -103,10 +103,21 @@ class RecipeCreate(RecipeBase):
 
     # Dans l'ordre d'affichage. PUT remplace toute la recette : liste absente = aucun ingrédient
     ingredients: list[IngredientIn] = Field(default_factory=list, max_length=MAX_INGREDIENTS)
+    # Catégorie de l'utilisateur, facultative (PUT : absente = sans catégorie)
+    category_id: int | None = None
 
 
 class RecipeUpdate(RecipeCreate):
     pass
+
+
+class CategoryRef(BaseModel):
+    """Catégorie telle qu'affichée avec une recette."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
 
 
 class Recipe(RecipeBase):
@@ -115,6 +126,8 @@ class Recipe(RecipeBase):
 
     id: int
     ingredients: list[Ingredient]
+    category_id: int | None = None
+    category: CategoryRef | None = None
     created_at: datetime
     updated_at: datetime
     # Résumé de l'historique des repas (calculé, pas modifiable directement)

@@ -23,6 +23,10 @@ class RecipeModel(Base):
     owner_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True, default=None
     )
+    # Catégorie facultative ; supprimer la catégorie remet ses recettes « sans catégorie »
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), index=True, default=None
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -30,6 +34,8 @@ class RecipeModel(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    # Catégorie lue avec la recette (son nom est renvoyé par l'API)
+    category: Mapped["CategoryModel | None"] = relationship(lazy="joined")  # noqa: F821
     # Ingrédients dans l'ordre de saisie. Remplacer la liste supprime les anciens
     # (delete-orphan) ; supprimer la recette supprime ses ingrédients.
     ingredients: Mapped[list["IngredientModel"]] = relationship(

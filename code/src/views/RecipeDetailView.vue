@@ -123,7 +123,15 @@ onMounted(load)
   <article v-else class="recipe">
     <header class="hero">
       <div class="heading">
-        <p class="eyebrow">Recette</p>
+        <p class="eyebrow">
+          <RouterLink
+            v-if="recipe.category"
+            :to="{ name: 'home', query: { categorie: recipe.category.id } }"
+            class="category-link"
+            >{{ recipe.category.name }}</RouterLink
+          >
+          <template v-else>Recette</template>
+        </p>
         <h1 class="page-title">{{ recipe.title }}</h1>
         <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
         <p class="cooked" aria-live="polite"><AppIcon name="history" /> {{ cookedSummary }}</p>
@@ -260,6 +268,12 @@ onMounted(load)
 }
 .heading {
   min-width: 0;
+}
+.category-link {
+  color: inherit;
+}
+.category-link:hover {
+  text-decoration: underline;
 }
 .page-title {
   overflow-wrap: anywhere;

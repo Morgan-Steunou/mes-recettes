@@ -26,6 +26,10 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 - [x] **9. Suggestions parmi vos recettes.** On saisit les ingrédients disponibles ; l'application classe les recettes selon leur correspondance et montre les ingrédients manquants. Page « Que cuisiner ? » (`/que-cuisiner`) : ingrédients en étiquettes (Entrée, virgules, propositions tirées des recettes), recettes « Prêtes à cuisiner » puis « Il manque quelques ingrédients », du moins au plus manquant ; sel, poivre, huile et eau comptés comme toujours disponibles (option). Correspondance par mots entiers (`src/utils/suggest.js`) : « poulet » trouve « Blanc de poulet », « eau » ne trouve pas « Veau » ; limite connue : « pomme » trouve aussi « Pommes de terre ».
 - [ ] **10. Création automatique par IA.** *En attente, décision reportée.* Proposer une nouvelle recette en brouillon à partir des ingrédients, via l'API Claude. Coût estimé : quelques centimes à moins d'un euro par mois pour un usage personnel. Implique un compte sur la Console Anthropic, une clé d'API dans `.env` et une connexion internet ; la fonction resterait optionnelle.
 
+## Ajouts
+
+- [x] **Catégories de plats.** Catégories créées par l'utilisateur (page `/categories` : créer, renommer, supprimer ; nom unique sans tenir compte des majuscules), une catégorie facultative par recette, choisie ou créée dans le formulaire. Accueil : onglets « Toutes · Desserts (7) · … · Sans catégorie », combinés avec la recherche et les filtres, gardés dans l'URL (`?categorie=3`) ; « Nouvelle recette » depuis un onglet crée la recette dans cette catégorie. Supprimer une catégorie garde ses recettes (sans catégorie). Table `categories` et colonne `recipes.category_id` (migration 0006), API `/api/categories`.
+
 ## Pour plus tard
 
-Activer les comptes utilisateurs, photos, catégories ou étiquettes, liste de courses.
+Activer les comptes utilisateurs, photos, étiquettes (plusieurs par recette), ordre personnalisé des catégories, liste de courses.

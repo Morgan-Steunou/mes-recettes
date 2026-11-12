@@ -85,6 +85,43 @@ export const useRecipesStore = defineStore('recipes', () => {
     return refreshSummary(recipeId)
   }
 
+  // Catégories de l'utilisateur, par ordre alphabétique : [{ id, name, recipe_count }]
+  const categories = ref([])
+  const categoriesLoaded = ref(false)
+
+  async function fetchCategories() {
+    categories.value = await api.get('/categories')
+    categoriesLoaded.value = true
+    return categories.value
+  }
+
+  const byName = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+
+  async function createCategory(name) {
+    const category = await api.post('/categories', { name })
+    categories.value = [...categories.value, category].sort(byName)
+    return category
+  }
+
+  // Le nouveau nom est aussi reporté sur les recettes déjà en mémoire
+  async function renameCategory(id, name) {
+    const category = await api.put(`/categories/${id}`, { name })
+    categories.value = categories.value.map((c) => (c.id === id ? category : c)).sort(byName)
+    recipes.value = recipes.value.map((r) =>
+      r.category_id === id ? { ...r, category: { id, name: category.name } } : r,
+    )
+    return category
+  }
+
+  // Les recettes de la catégorie sont gardées, sans catégorie
+  async function deleteCategory(id) {
+    await api.delete(`/categories/${id}`)
+    categories.value = categories.value.filter((c) => c.id !== id)
+    recipes.value = recipes.value.map((r) =>
+      r.category_id === id ? { ...r, category_id: null, category: null } : r,
+    )
+  }
+
   function clearActionError() {
     actionError.value = null
   }
@@ -92,6 +129,8 @@ export const useRecipesStore = defineStore('recipes', () => {
   // À la déconnexion : rien de l'utilisateur précédent ne reste en mémoire
   function reset() {
     recipes.value = []
+    categories.value = []
+    categoriesLoaded.value = false
     error.value = null
     actionError.value = null
   }
@@ -112,5 +151,11 @@ export const useRecipesStore = defineStore('recipes', () => {
     deleteCooking,
     clearActionError,
     reset,
+    categories,
+    categoriesLoaded,
+    fetchCategories,
+    createCategory,
+    renameCategory,
+    deleteCategory,
   }
 })
