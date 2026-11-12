@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures.js'
 
 const search = (page) =>
-  page.getByRole('searchbox', { name: 'Rechercher une recette par son titre' })
+  page.getByRole('searchbox', { name: 'Rechercher une recette par titre ou ingrédient' })
 const titles = (page) => page.locator('.list > li .title')
 const subtitle = (page) => page.locator('.subtitle')
 

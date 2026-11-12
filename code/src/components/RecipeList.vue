@@ -3,9 +3,15 @@ import AppIcon from '@/components/AppIcon.vue'
 import { formatDuration, totalTime } from '@/utils/recipe'
 import { relativeDay } from '@/utils/dates'
 
-defineProps({
+const props = defineProps({
   recipes: { type: Array, required: true },
+  // Ingrédients trouvés par la recherche, par id de recette : { 12: ['Blanc de poulet'] }
+  ingredientHits: { type: Object, default: () => ({}) },
 })
+
+function hits(recipe) {
+  return props.ingredientHits[recipe.id] ?? []
+}
 const emit = defineEmits(['remove'])
 
 function confirmRemove(recipe) {
@@ -70,6 +76,13 @@ function detailLink(recipe) {
           recipe.title
         }}</RouterLink>
         <p v-if="recipe.description" class="description">{{ recipe.description }}</p>
+        <p v-if="hits(recipe).length" class="hits">
+          Avec :
+          <template v-for="(name, i) in hits(recipe)" :key="name"
+            ><mark>{{ name }}</mark
+            >{{ i < hits(recipe).length - 1 ? ', ' : '' }}</template
+          >
+        </p>
         <ul v-if="hasMeta(recipe)" class="meta" aria-label="Informations">
           <li v-if="recipe.servings">
             <AppIcon name="users" />{{ servingsLabel(recipe.servings) }}
@@ -174,6 +187,19 @@ function detailLink(recipe) {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+/* Ingrédients trouvés par la recherche */
+.hits {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.hits mark {
+  padding: 0 0.2rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 4px;
 }
 .meta {
   display: flex;

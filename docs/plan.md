@@ -19,7 +19,7 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 ## Phase 3 : Recherche
 
 - [x] **7. Recherche par titre.** Barre de recherche sur la liste, sans tenir compte des accents ni des majuscules, mots dans n'importe quel ordre. Filtrage dans le navigateur (`src/utils/search.js`), recherche gardée dans l'URL (`/?q=…`), raccourcis « / » et Échap.
-- [ ] **8. Recherche par ingrédient et filtres.** Par exemple « avec du poulet », « moins de 30 minutes », « pas faite depuis un mois », avec un tri.
+- [x] **8. Recherche par ingrédient et filtres.** Par exemple « avec du poulet », « moins de 30 minutes », « pas faite depuis un mois », avec un tri. La recherche porte sur le titre et les ingrédients (petits mots et pluriels ignorés, ingrédients trouvés affichés sur la carte) ; menus « Temps total », « Dernière fois » et « Trier par », gardés dans l'URL (`?temps=30&faite=1m&tri=titre`) ; « Tout effacer ».
 
 ## Phase 4 : Recettes à partir d'ingrédients
 
