@@ -23,7 +23,7 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 
 ## Phase 4 : Recettes à partir d'ingrédients
 
-- [ ] **9. Suggestions parmi vos recettes.** On saisit les ingrédients disponibles ; l'application classe les recettes selon leur correspondance et montre les ingrédients manquants.
+- [x] **9. Suggestions parmi vos recettes.** On saisit les ingrédients disponibles ; l'application classe les recettes selon leur correspondance et montre les ingrédients manquants. Page « Que cuisiner ? » (`/que-cuisiner`) : ingrédients en étiquettes (Entrée, virgules, propositions tirées des recettes), recettes « Prêtes à cuisiner » puis « Il manque quelques ingrédients », du moins au plus manquant ; sel, poivre, huile et eau comptés comme toujours disponibles (option). Correspondance par mots entiers (`src/utils/suggest.js`) : « poulet » trouve « Blanc de poulet », « eau » ne trouve pas « Veau » ; limite connue : « pomme » trouve aussi « Pommes de terre ».
 - [ ] **10. Création automatique par IA.** *En attente, décision reportée.* Proposer une nouvelle recette en brouillon à partir des ingrédients, via l'API Claude. Coût estimé : quelques centimes à moins d'un euro par mois pour un usage personnel. Implique un compte sur la Console Anthropic, une clé d'API dans `.env` et une connexion internet ; la fonction resterait optionnelle.
 
 ## Pour plus tard
