@@ -3,7 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
-import { matchesTitle, searchTerms } from '@/utils/search'
+import {
+  COOKED_FILTERS,
+  SORTS,
+  TIME_FILTERS,
+  filterRecipes,
+  optionKey,
+  searchTerms,
+} from '@/utils/search'
 import AppIcon from '@/components/AppIcon.vue'
 import RecipeList from '@/components/RecipeList.vue'
 
@@ -12,7 +19,8 @@ const { recipes, loading, error, actionError } = storeToRefs(store)
 const route = useRoute()
 const router = useRouter()
 
-// Recherche par titre, gardée dans l'URL (/?q=tarte) : elle survit au rechargement
+// Recherche (titre et ingrédients), filtres et tri, gardés dans l'URL
+// (/?q=poulet&temps=30&faite=1m&tri=titre) : ils survivent au rechargement
 // et au retour depuis une fiche recette
 const searchInput = ref(null)
 const queryFromRoute = () => (typeof route.query.q === 'string' ? route.query.q : '')
@@ -26,9 +34,33 @@ watch(query, (value) => {
 watch(queryFromRoute, (value) => {
   if (value !== query.value) query.value = value
 })
-const terms = computed(() => searchTerms(query.value))
-const searching = computed(() => terms.value.length > 0)
-const filtered = computed(() => recipes.value.filter((r) => matchesTitle(r, terms.value)))
+
+// Menu lié à un paramètre d'URL ; une valeur inconnue dans l'URL vaut « tous »
+function queryParam(key, options) {
+  return computed({
+    get: () => optionKey(options, route.query[key]),
+    set: (value) => {
+      const { [key]: _old, ...rest } = route.query // eslint-disable-line no-unused-vars
+      router.replace({ query: value ? { ...rest, [key]: value } : rest })
+    },
+  })
+}
+const time = queryParam('temps', TIME_FILTERS)
+const cooked = queryParam('faite', COOKED_FILTERS)
+const sort = queryParam('tri', SORTS)
+
+const searching = computed(() => searchTerms(query.value).length > 0)
+// Le tri ne retire aucune recette : seuls la recherche et les filtres réduisent la liste
+const filtering = computed(() => searching.value || !!time.value || !!cooked.value)
+const result = computed(() =>
+  filterRecipes(recipes.value, {
+    query: query.value,
+    time: time.value,
+    cooked: cooked.value,
+    sort: sort.value,
+  }),
+)
+const filtered = computed(() => result.value.recipes)
 
 function plural(count, word) {
   return `${count} ${word}${count > 1 ? 's' : ''}`
@@ -36,6 +68,13 @@ function plural(count, word) {
 
 function clearSearch() {
   query.value = ''
+  searchInput.value?.focus()
+}
+
+// Efface recherche et filtres (le tri choisi est gardé). La saisie est vidée par la
+// synchronisation avec l'URL : la vider ici relancerait une navigation avec l'ancienne URL.
+function clearAll() {
+  router.replace({ query: sort.value ? { tri: sort.value } : {} })
   searchInput.value?.focus()
 }
 
@@ -62,7 +101,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <p class="eyebrow">Mon carnet</p>
       <h1 class="page-title">Mes recettes</h1>
       <p class="subtitle">
-        <template v-if="!loading && !error && searching">
+        <template v-if="!loading && !error && filtering">
           {{ plural(filtered.length, 'recette') }} sur {{ recipes.length }}.
         </template>
         <template v-else-if="!loading && !error">
@@ -99,16 +138,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <span class="alert-text">{{ error }}</span>
   </div>
   <template v-else>
-    <!-- Barre de recherche, dès qu'il y a au moins une recette (ou une recherche dans l'URL) -->
-    <div v-if="recipes.length || searching" class="search" role="search">
-      <label for="recipe-search" class="sr-only">Rechercher une recette par son titre</label>
+    <!-- Recherche et filtres, dès qu'il y a au moins une recette (ou des critères dans l'URL) -->
+    <div v-if="recipes.length || filtering" class="search" role="search">
+      <label for="recipe-search" class="sr-only"
+        >Rechercher une recette par titre ou ingrédient</label
+      >
       <span class="search-icon" aria-hidden="true"><AppIcon name="search" /></span>
       <input
         id="recipe-search"
         ref="searchInput"
         v-model="query"
         type="search"
-        placeholder="Rechercher par titre…"
+        placeholder="Recette ou ingrédient…"
         autocomplete="off"
         spellcheck="false"
         aria-keyshortcuts="/"
@@ -127,9 +168,42 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       </button>
     </div>
 
-    <!-- Résultat annoncé aux lecteurs d'écran à chaque frappe -->
+    <div v-if="recipes.length || filtering" class="filters">
+      <label class="filter" :class="{ active: time }">
+        <span class="filter-label">Temps total</span>
+        <span class="select">
+          <select v-model="time">
+            <option v-for="o in TIME_FILTERS" :key="o.key" :value="o.key">{{ o.label }}</option>
+          </select>
+          <AppIcon name="chevronDown" />
+        </span>
+      </label>
+      <label class="filter" :class="{ active: cooked }">
+        <span class="filter-label">Dernière fois</span>
+        <span class="select">
+          <select v-model="cooked">
+            <option v-for="o in COOKED_FILTERS" :key="o.key" :value="o.key">{{ o.label }}</option>
+          </select>
+          <AppIcon name="chevronDown" />
+        </span>
+      </label>
+      <label class="filter" :class="{ active: sort }">
+        <span class="filter-label">Trier par</span>
+        <span class="select">
+          <select v-model="sort">
+            <option v-for="o in SORTS" :key="o.key" :value="o.key">{{ o.label }}</option>
+          </select>
+          <AppIcon name="chevronDown" />
+        </span>
+      </label>
+      <button v-if="filtering" type="button" class="btn-ghost clear-all" @click="clearAll">
+        <AppIcon name="x" /> Tout effacer
+      </button>
+    </div>
+
+    <!-- Résultat annoncé aux lecteurs d'écran à chaque changement -->
     <p class="sr-only" role="status">
-      <template v-if="searching"
+      <template v-if="filtering"
         >{{ plural(filtered.length, 'recette') }} trouvée{{
           filtered.length > 1 ? 's' : ''
         }}</template
@@ -137,14 +211,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     </p>
 
     <div id="recipe-results">
-      <div v-if="searching && !filtered.length" class="no-results card">
-        <p class="no-results-title">Aucune recette ne correspond à « {{ query.trim() }} ».</p>
-        <p class="no-results-hint">Vérifiez l'orthographe ou essayez un autre mot du titre.</p>
-        <button type="button" class="btn-ghost" @click="clearSearch">
-          <AppIcon name="x" /> Effacer la recherche
+      <div v-if="filtering && !filtered.length" class="no-results card">
+        <p v-if="searching && !time && !cooked" class="no-results-title">
+          Aucune recette ne correspond à « {{ query.trim() }} ».
+        </p>
+        <p v-else class="no-results-title">Aucune recette ne correspond à ces critères.</p>
+        <p class="no-results-hint">
+          Vérifiez l'orthographe, essayez un autre mot ou élargissez les filtres.
+        </p>
+        <button type="button" class="btn-ghost" @click="clearAll">
+          <AppIcon name="x" /> {{ time || cooked ? 'Tout effacer' : 'Effacer la recherche' }}
         </button>
       </div>
-      <RecipeList v-else :recipes="filtered" @remove="store.removeRecipe" />
+      <RecipeList
+        v-else
+        :recipes="filtered"
+        :ingredient-hits="result.ingredientHits"
+        @remove="store.removeRecipe"
+      />
     </div>
   </template>
 </template>
@@ -222,6 +306,74 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   }
 }
 
+/* Filtres et tri */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: -0.4rem 0 1.5rem;
+}
+.filter {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+}
+.select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.select select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 2.1rem 0.5rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  appearance: none;
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+.select select:hover {
+  border-color: var(--border-strong);
+}
+.select select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.select :deep(svg) {
+  position: absolute;
+  right: 0.75rem;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+/* Filtre actif : mis en évidence, comme les périodes de l'historique */
+.filter.active .select select {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.filter.active .select :deep(svg) {
+  color: var(--accent);
+}
+.clear-all {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
+}
+
 .no-results {
   display: grid;
   justify-items: center;
@@ -281,6 +433,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   .hero {
     flex-direction: column;
     align-items: flex-start;
+  }
+  /* Un menu par ligne, sur toute la largeur : les libellés longs
+     (« Pas faites depuis 1 mois », « Pas faites depuis longtemps ») restent lisibles */
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  .clear-all {
+    justify-self: start;
   }
 }
 </style>
