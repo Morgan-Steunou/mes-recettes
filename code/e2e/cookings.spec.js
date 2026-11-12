@@ -14,6 +14,17 @@ const topButton = (page) => page.getByRole('button', { name: "Je l'ai cuisinée"
 const saveButton = (page) => page.getByRole('button', { name: 'Enregistrer le repas' })
 const dateField = (page) => log(page).getByLabel('Date')
 const star = (page, n) => page.getByRole('radio', { name: `${n} étoile${n > 1 ? 's' : ''} sur 5` })
+
+// Choisit la note en cliquant sur l'étoile visible (le bouton radio, invisible, ne sert qu'aux
+// lecteurs d'écran). Pas de { force: true } : Playwright attend ainsi la fin du défilement doux
+// vers le formulaire au lieu de cliquer à côté pendant qu'il bouge.
+async function chooseStar(page, n) {
+  await log(page)
+    .locator('.star')
+    .nth(n - 1)
+    .click()
+  await expect(star(page, n)).toBeChecked()
+}
 const summary = (page) => page.locator('.cooked').first()
 
 async function openRecipe(page, request, token, title = 'Crêpes') {
@@ -54,7 +65,7 @@ test('enregistre une date passée, une note et un commentaire', async ({ page, r
 
   await topButton(page).click()
   await dateField(page).fill(dayISO(-3))
-  await star(page, 4).check({ force: true })
+  await chooseStar(page, 4)
   await log(page).getByLabel('Commentaire (facultatif)').fill('Un peu trop salé')
   await saveButton(page).click()
 
@@ -169,7 +180,7 @@ test('le formulaire de repas tient sur mobile', async ({ page, request, token })
   await page.setViewportSize({ width: 375, height: 760 })
   await openRecipe(page, request, token)
   await topButton(page).click()
-  await star(page, 5).check({ force: true })
+  await chooseStar(page, 5)
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
