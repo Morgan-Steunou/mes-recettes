@@ -25,6 +25,9 @@ function logout() {
           <RouterLink to="/" class="link">
             <AppIcon name="home" /><span class="link-label">Accueil</span>
           </RouterLink>
+          <RouterLink to="/que-cuisiner" class="link">
+            <AppIcon name="basket" /><span class="link-label">Que cuisiner ?</span>
+          </RouterLink>
           <RouterLink to="/historique" class="link">
             <AppIcon name="history" /><span class="link-label">Historique</span>
           </RouterLink>
@@ -37,7 +40,7 @@ function logout() {
           <span v-if="auth.user" class="user" :title="`Connecté en tant que ${auth.user.username}`">
             <AppIcon name="user" /><span class="username">{{ auth.user.username }}</span>
           </span>
-          <button type="button" class="btn-ghost logout" @click="logout">
+          <button type="button" class="btn-ghost logout" title="Se déconnecter" @click="logout">
             <AppIcon name="logout" /><span class="label">Se déconnecter</span>
           </button>
         </template>
@@ -125,7 +128,7 @@ function logout() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  max-width: 10rem;
+  max-width: 8rem;
   font-size: 0.875rem;
   color: var(--text-muted);
 }
@@ -137,11 +140,20 @@ function logout() {
 .logout {
   border-radius: 999px;
 }
+/* Déconnexion réduite à son icône à toutes les largeurs (place des quatre liens) : le libellé
+   reste lu par les lecteurs d'écran et s'affiche en infobulle */
+.logout .label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
-/* Nom d'utilisateur et libellé « Se déconnecter » masqués tant que la place manque */
+/* Nom d'utilisateur masqué tant que la place manque */
 @media (max-width: 980px) {
-  .user,
-  .logout .label {
+  .user {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -150,9 +162,9 @@ function logout() {
     white-space: nowrap;
   }
 }
-/* Liens réduits à leur icône dès 760 px (trois liens, et le bouton de déconnexion quand les
+/* Liens réduits à leur icône dès 900 px (quatre liens, et le bouton de déconnexion quand les
    comptes sont activés) ; le libellé reste lu par les lecteurs d'écran */
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .link {
     padding: 0.45rem 0.6rem;
   }
