@@ -1,0 +1,156 @@
+# Intégration continue : lint, tests API, build de l'interface, tests E2E et images Docker.
+# Se lance à chaque push sur main et à chaque pull request (résultat visible sur la PR).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Un nouveau push sur la même branche annule l'exécution précédente, devenue inutile
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  lint:
+    name: Lint (Ruff, Prettier, ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+      - name: Dépendances JavaScript (Prettier, ESLint)
+        run: npm ci
+        working-directory: code
+      - name: pre-commit sur tout le projet
+        run: |
+          pip install pre-commit==4.7.0
+          pre-commit run --all-files --show-diff-on-failure
+
+  api:
+    name: Tests API (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: code/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      # Les tests utilisent une base SQLite en mémoire et leur propre SECRET_KEY (tests/conftest.py)
+      - run: pytest
+
+  front:
+    name: Build de l'interface (Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  e2e:
+    name: Tests E2E (Playwright, comptes ${{ matrix.auth && 'activés' || 'désactivés' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        auth: [false, true]
+    services:
+      # Base de test mes_recettes_test, comme en local (voir playwright.config.js)
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: mes_recettes_test
+          POSTGRES_USER: mes_recettes
+          POSTGRES_PASSWORD: mot-de-passe-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mes_recettes -d mes_recettes_test"
+          --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      # Pas de .env en CI : ces variables le remplacent (valeurs propres à la CI, sans secret réel)
+      POSTGRES_USER: mes_recettes
+      POSTGRES_PASSWORD: mot-de-passe-ci
+      SECRET_KEY: cle-de-ci-uniquement-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      AUTH_ENABLED: ${{ matrix.auth }}
+    defaults:
+      run:
+        working-directory: code
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: code/requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+      # Playwright lance l'API avec code/.venv/bin/python : on recrée ce venv
+      - name: Dépendances Python (venv code/.venv)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+      - run: npm ci
+      - name: Navigateur Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - name: Rapport Playwright (en cas d'échec)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-auth-${{ matrix.auth }}
+          path: |
+            code/playwright-report/
+            code/test-results/
+          retention-days: 7
+
+  docker:
+    name: Images Docker (api, web)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build de l'image ${{ matrix.target }}
+        uses: docker/build-push-action@v6
+        with:
+          context: code
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
