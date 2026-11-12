@@ -142,17 +142,27 @@ function matchesCooked(recipe, key, today) {
   return true
 }
 
-// Applique recherche, filtres et tri. Renvoie { recipes, ingredientHits } où ingredientHits
-// associe à l'id d'une recette les ingrédients qui ont répondu à la recherche.
+// Onglet de catégorie : '' = toutes, 'aucune' = sans catégorie, sinon l'id (en texte)
+export const NO_CATEGORY = 'aucune'
+
+export function matchesCategory(recipe, key) {
+  if (!key) return true
+  if (key === NO_CATEGORY) return recipe.category_id == null
+  return String(recipe.category_id) === key
+}
+
+// Applique catégorie, recherche, filtres et tri. Renvoie { recipes, ingredientHits } où
+// ingredientHits associe à l'id d'une recette les ingrédients qui ont répondu à la recherche.
 export function filterRecipes(
   recipes,
-  { query = '', time = '', cooked = '', sort = '' } = {},
+  { query = '', time = '', cooked = '', sort = '', category = '' } = {},
   today = new Date(),
 ) {
   const terms = searchTerms(query)
   const ingredientHits = {}
   const kept = []
   for (const recipe of recipes) {
+    if (!matchesCategory(recipe, category)) continue
     if (!matchesTime(recipe, time) || !matchesCooked(recipe, cooked, today)) continue
     const match = matchRecipe(recipe, terms)
     if (!match) continue

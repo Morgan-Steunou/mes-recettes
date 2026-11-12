@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
 import IngredientsEditor from '@/components/IngredientsEditor.vue'
@@ -12,7 +13,46 @@ const props = defineProps({
 })
 
 const store = useRecipesStore()
+const { categories } = storeToRefs(store)
 const router = useRouter()
+const route = useRoute()
+
+// Catégorie choisie ('' = sans catégorie). En création, celle de l'onglet d'où l'on vient
+// (lien « Nouvelle recette » de l'accueil : /recettes/nouvelle?categorie=3)
+const categoryId = ref(/^\d+$/.test(route.query.categorie ?? '') ? route.query.categorie : '')
+// Création d'une catégorie depuis le formulaire
+const newCategory = ref(null) // null : champ masqué
+const newCategoryInput = ref(null)
+const categoryError = ref(null)
+const creatingCategory = ref(false)
+
+async function openNewCategory() {
+  newCategory.value = ''
+  categoryError.value = null
+  await nextTick()
+  newCategoryInput.value?.focus()
+}
+
+function closeNewCategory() {
+  newCategory.value = null
+  categoryError.value = null
+}
+
+async function createCategory() {
+  const name = newCategory.value?.trim()
+  if (!name) return
+  creatingCategory.value = true
+  categoryError.value = null
+  try {
+    const category = await store.createCategory(name)
+    categoryId.value = String(category.id)
+    newCategory.value = null
+  } catch (e) {
+    categoryError.value = e.message
+  } finally {
+    creatingCategory.value = false
+  }
+}
 
 const isEdit = computed(() => props.id !== null)
 // Annuler : retour à la fiche en modification, à la liste en création
@@ -69,6 +109,7 @@ function payload(ingredients) {
     cook_time_minutes: toNumber(form.cook_time_minutes),
     steps: toText(form.steps),
     ingredients,
+    category_id: categoryId.value ? Number(categoryId.value) : null,
   }
 }
 
@@ -77,6 +118,7 @@ async function load() {
   try {
     const recipe = await store.fetchRecipe(recipeId.value)
     for (const key of Object.keys(form)) form[key] = recipe[key] ?? ''
+    categoryId.value = recipe.category_id ? String(recipe.category_id) : ''
     ingredientRows.value = recipe.ingredients.length
       ? recipe.ingredients.map(ingredientRow)
       : [ingredientRow()]
@@ -112,6 +154,8 @@ async function submit() {
 
 onMounted(() => {
   if (isEdit.value) load()
+  // Liste des catégories pour le menu ; une erreur ici n'empêche pas d'enregistrer
+  store.fetchCategories().catch(() => {})
 })
 </script>
 
@@ -147,6 +191,46 @@ onMounted(() => {
         placeholder="Ex. : Tarte aux pommes"
       />
     </label>
+
+    <div class="field">
+      <label class="label" for="recipe-category"><AppIcon name="folder" /> Catégorie</label>
+      <div class="category-row">
+        <select id="recipe-category" v-model="categoryId" name="category">
+          <option value="">Sans catégorie</option>
+          <option v-for="c in categories" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
+        </select>
+        <button
+          v-if="newCategory === null"
+          type="button"
+          class="btn-ghost"
+          @click="openNewCategory"
+        >
+          <AppIcon name="plus" /> Nouvelle catégorie
+        </button>
+      </div>
+      <div v-if="newCategory !== null" class="category-row">
+        <input
+          ref="newCategoryInput"
+          v-model="newCategory"
+          aria-label="Nom de la nouvelle catégorie"
+          maxlength="50"
+          autocomplete="off"
+          placeholder="Ex. : Desserts"
+          @keydown.enter.prevent="createCategory"
+          @keydown.esc.prevent="closeNewCategory"
+        />
+        <button
+          type="button"
+          class="btn"
+          :disabled="creatingCategory || !newCategory.trim()"
+          @click="createCategory"
+        >
+          <AppIcon name="check" /> Créer
+        </button>
+        <button type="button" class="btn-ghost" @click="closeNewCategory">Annuler</button>
+      </div>
+      <p v-if="categoryError" class="category-error" role="alert">{{ categoryError }}</p>
+    </div>
 
     <label class="field">
       <span class="label">Description</span>
@@ -271,6 +355,20 @@ onMounted(() => {
 .field textarea {
   width: 100%;
   min-width: 0;
+}
+.category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.category-row select,
+.category-row input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.category-error {
+  font-size: 0.85rem;
+  color: var(--danger);
 }
 textarea {
   resize: vertical;

@@ -10,10 +10,15 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.models.category import CategoryModel
 from app.models.cooking import CookingModel
 from app.models.recipe import IngredientModel, RecipeModel
 from app.models.user import UserModel
 from app.schemas.recipe import IngredientIn, Recipe, RecipeCreate, RecipeUpdate
+
+
+class CategoryNotFoundError(Exception):
+    """La catégorie demandée n'existe pas (ou appartient à un autre utilisateur)."""
 
 
 def _ingredient_rows(ingredients: list[IngredientIn]) -> list[IngredientModel]:
@@ -78,7 +83,19 @@ class RecipeService:
         row = self._get_row(recipe_id)
         return self._to_schema(row) if row else None
 
+    def _check_category(self, category_id: int | None) -> None:
+        if category_id is None:
+            return
+        exists = self.db.scalar(
+            select(CategoryModel.id).where(
+                CategoryModel.id == category_id, CategoryModel.owner_id == self.owner_id
+            )
+        )
+        if exists is None:
+            raise CategoryNotFoundError
+
     def create(self, data: RecipeCreate) -> Recipe:
+        self._check_category(data.category_id)
         row = RecipeModel(
             **data.model_dump(exclude={"ingredients"}),
             ingredients=_ingredient_rows(data.ingredients),
@@ -94,6 +111,7 @@ class RecipeService:
         row = self._get_row(recipe_id)
         if row is None:
             return None
+        self._check_category(data.category_id)
         for field, value in data.model_dump(exclude={"ingredients"}).items():
             setattr(row, field, value)
         # Les anciens ingrédients sont supprimés (delete-orphan), les nouveaux insérés dans l'ordre

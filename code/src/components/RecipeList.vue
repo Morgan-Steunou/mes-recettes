@@ -7,6 +7,8 @@ const props = defineProps({
   recipes: { type: Array, required: true },
   // Ingrédients trouvés par la recherche, par id de recette : { 12: ['Blanc de poulet'] }
   ingredientHits: { type: Object, default: () => ({}) },
+  // Catégorie affichée sur la carte (inutile dans l'onglet d'une catégorie)
+  showCategory: { type: Boolean, default: false },
 })
 
 function hits(recipe) {
@@ -39,6 +41,7 @@ function ingredientsLabel(count) {
 
 function hasMeta(recipe) {
   return (
+    (props.showCategory && recipe.category) ||
     recipe.servings ||
     totalTime(recipe) !== null ||
     recipe.ingredients?.length ||
@@ -84,6 +87,9 @@ function detailLink(recipe) {
           >
         </p>
         <ul v-if="hasMeta(recipe)" class="meta" aria-label="Informations">
+          <li v-if="showCategory && recipe.category" class="category">
+            <AppIcon name="folder" />{{ recipe.category.name }}
+          </li>
           <li v-if="recipe.servings">
             <AppIcon name="users" />{{ servingsLabel(recipe.servings) }}
           </li>

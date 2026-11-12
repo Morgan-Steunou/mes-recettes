@@ -5,9 +5,11 @@ import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
 import {
   COOKED_FILTERS,
+  NO_CATEGORY,
   SORTS,
   TIME_FILTERS,
   filterRecipes,
+  matchesCategory,
   optionKey,
   searchTerms,
 } from '@/utils/search'
@@ -15,7 +17,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import RecipeList from '@/components/RecipeList.vue'
 
 const store = useRecipesStore()
-const { recipes, loading, error, actionError } = storeToRefs(store)
+const { recipes, loading, error, actionError, categories, categoriesLoaded } = storeToRefs(store)
 const route = useRoute()
 const router = useRouter()
 
@@ -49,18 +51,76 @@ const time = queryParam('temps', TIME_FILTERS)
 const cooked = queryParam('faite', COOKED_FILTERS)
 const sort = queryParam('tri', SORTS)
 
+// Onglet de catégorie (/?categorie=3, /?categorie=aucune). Une catégorie inconnue (supprimée,
+// lien périmé) ramène à « Toutes » une fois les catégories chargées.
+const category = computed({
+  get: () => {
+    const value = route.query.categorie
+    if (value === NO_CATEGORY) return value
+    if (typeof value !== 'string' || !/^\d+$/.test(value)) return ''
+    if (categoriesLoaded.value && !categories.value.some((c) => String(c.id) === value)) return ''
+    return value
+  },
+  set: (value) => {
+    const { categorie: _old, ...rest } = route.query // eslint-disable-line no-unused-vars
+    router.replace({ query: value ? { ...rest, categorie: value } : rest })
+  },
+})
+const currentCategory = computed(() =>
+  categories.value.find((c) => String(c.id) === category.value),
+)
+
 const searching = computed(() => searchTerms(query.value).length > 0)
-// Le tri ne retire aucune recette : seuls la recherche et les filtres réduisent la liste
+// Le tri ne retire aucune recette : seuls la recherche et les filtres réduisent la liste.
+// L'onglet de catégorie est une navigation : « Tout effacer » le garde.
 const filtering = computed(() => searching.value || !!time.value || !!cooked.value)
+const criteria = computed(() => ({
+  query: query.value,
+  time: time.value,
+  cooked: cooked.value,
+  sort: sort.value,
+}))
+// Recettes de toutes les catégories qui répondent à la recherche et aux filtres :
+// sert à compter les recettes de chaque onglet
+const allMatching = computed(() => filterRecipes(recipes.value, criteria.value).recipes)
 const result = computed(() =>
-  filterRecipes(recipes.value, {
-    query: query.value,
-    time: time.value,
-    cooked: cooked.value,
-    sort: sort.value,
-  }),
+  filterRecipes(recipes.value, { ...criteria.value, category: category.value }),
 )
 const filtered = computed(() => result.value.recipes)
+
+// Onglets : Toutes, chaque catégorie, puis « Sans catégorie » s'il y en a
+const tabs = computed(() => {
+  const count = (key) => allMatching.value.filter((r) => matchesCategory(r, key)).length
+  const list = [{ key: '', label: 'Toutes', count: allMatching.value.length }]
+  for (const c of categories.value) {
+    list.push({ key: String(c.id), label: c.name, count: count(String(c.id)) })
+  }
+  if (recipes.value.some((r) => r.category_id == null)) {
+    list.push({ key: NO_CATEGORY, label: 'Sans catégorie', count: count(NO_CATEGORY) })
+  }
+  return list
+})
+const showTabs = computed(() => categories.value.length > 0)
+// Le sous-titre compte « x sur y » dès que la liste est réduite
+const narrowed = computed(() => filtering.value || !!category.value)
+
+// « Nouvelle recette » depuis un onglet : la recette est créée dans cette catégorie
+const newRecipeLink = computed(() =>
+  currentCategory.value
+    ? { name: 'recipe-new', query: { categorie: currentCategory.value.id } }
+    : { name: 'recipe-new' },
+)
+
+// Flèches gauche / droite entre les onglets (comme un groupe de boutons radio)
+const tabButtons = ref([])
+function onTabKeydown(event, index) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+  if (!step) return
+  event.preventDefault()
+  const next = (index + step + tabs.value.length) % tabs.value.length
+  category.value = tabs.value[next].key
+  tabButtons.value[next]?.focus()
+}
 
 function plural(count, word) {
   return `${count} ${word}${count > 1 ? 's' : ''}`
@@ -71,10 +131,13 @@ function clearSearch() {
   searchInput.value?.focus()
 }
 
-// Efface recherche et filtres (le tri choisi est gardé). La saisie est vidée par la
-// synchronisation avec l'URL : la vider ici relancerait une navigation avec l'ancienne URL.
+// Efface recherche et filtres (le tri et l'onglet choisis sont gardés). La saisie est vidée par
+// la synchronisation avec l'URL : la vider ici relancerait une navigation avec l'ancienne URL.
 function clearAll() {
-  router.replace({ query: sort.value ? { tri: sort.value } : {} })
+  const kept = {}
+  if (sort.value) kept.tri = sort.value
+  if (category.value) kept.categorie = category.value
+  router.replace({ query: kept })
   searchInput.value?.focus()
 }
 
@@ -90,6 +153,8 @@ function onKeydown(event) {
 
 onMounted(() => {
   store.fetchRecipes()
+  // Sans catégories (ou en cas d'erreur), la liste s'affiche simplement sans onglets
+  store.fetchCategories().catch(() => {})
   window.addEventListener('keydown', onKeydown)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
@@ -101,7 +166,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <p class="eyebrow">Mon carnet</p>
       <h1 class="page-title">Mes recettes</h1>
       <p class="subtitle">
-        <template v-if="!loading && !error && filtering">
+        <template v-if="!loading && !error && narrowed">
           {{ plural(filtered.length, 'recette') }} sur {{ recipes.length }}.
         </template>
         <template v-else-if="!loading && !error">
@@ -110,7 +175,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <template v-else>Toutes vos recettes, au même endroit.</template>
       </p>
     </div>
-    <RouterLink :to="{ name: 'recipe-new' }" class="btn">
+    <RouterLink :to="newRecipeLink" class="btn">
       <AppIcon name="plus" /> Nouvelle recette
     </RouterLink>
   </section>
@@ -138,6 +203,35 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <span class="alert-text">{{ error }}</span>
   </div>
   <template v-else>
+    <!-- Onglets de catégorie, dès qu'il existe au moins une catégorie -->
+    <div v-if="showTabs" class="categories">
+      <div class="tabs" role="radiogroup" aria-label="Catégorie">
+        <button
+          v-for="(tab, index) in tabs"
+          :key="tab.key"
+          ref="tabButtons"
+          type="button"
+          role="radio"
+          class="tab"
+          :class="{ active: category === tab.key }"
+          :aria-checked="category === tab.key"
+          :tabindex="category === tab.key ? 0 : -1"
+          @click="category = tab.key"
+          @keydown="onTabKeydown($event, index)"
+        >
+          {{ tab.label }} <span class="tab-count">{{ tab.count }}</span>
+        </button>
+      </div>
+      <RouterLink :to="{ name: 'categories' }" class="manage" title="Gérer les catégories">
+        <AppIcon name="pencil" /><span class="manage-label">Gérer</span>
+      </RouterLink>
+    </div>
+    <p v-else-if="recipes.length" class="organize">
+      <RouterLink :to="{ name: 'categories' }">
+        <AppIcon name="folder" /> Classer mes recettes en catégories
+      </RouterLink>
+    </p>
+
     <!-- Recherche et filtres, dès qu'il y a au moins une recette (ou des critères dans l'URL) -->
     <div v-if="recipes.length || filtering" class="search" role="search">
       <label for="recipe-search" class="sr-only"
@@ -223,10 +317,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <AppIcon name="x" /> {{ time || cooked ? 'Tout effacer' : 'Effacer la recherche' }}
         </button>
       </div>
+      <!-- Onglet vide, sans recherche ni filtre -->
+      <div v-else-if="category && !filtered.length" class="no-results card">
+        <p class="no-results-title">
+          <template v-if="currentCategory"
+            >Aucune recette dans « {{ currentCategory.name }} » pour le moment.</template
+          >
+          <template v-else>Toutes vos recettes ont une catégorie.</template>
+        </p>
+        <RouterLink v-if="currentCategory" :to="newRecipeLink" class="btn-ghost">
+          <AppIcon name="plus" /> Ajouter une recette dans cette catégorie
+        </RouterLink>
+      </div>
       <RecipeList
         v-else
         :recipes="filtered"
         :ingredient-hits="result.ingredientHits"
+        :show-category="!category"
         @remove="store.removeRecipe"
       />
     </div>
@@ -243,6 +350,85 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 .hero .btn {
   flex-shrink: 0;
+}
+
+/* Onglets de catégorie : passent à la ligne s'ils sont nombreux (aucun n'est caché) */
+.categories {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition:
+    color var(--transition),
+    background var(--transition),
+    border-color var(--transition);
+}
+.tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.tab:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.tab.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.tab-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-radius: 999px;
+}
+.manage:hover {
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface-hover);
+}
+.organize {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.875rem;
+}
+.organize a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+}
+.organize a:hover {
+  color: var(--accent);
 }
 
 /* Recherche */
@@ -443,6 +629,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   }
   .clear-all {
     justify-self: start;
+  }
+  /* « Gérer » réduit à son icône */
+  .manage-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 </style>

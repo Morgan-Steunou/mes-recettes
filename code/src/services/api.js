@@ -13,6 +13,8 @@ const FIELD_LABELS = {
   cooked_on: 'La date',
   rating: 'La note',
   comment: 'Le commentaire',
+  name: 'Le nom',
+  category_id: 'La catégorie',
 }
 
 // Champs d'un ingrédient (erreur située en ['body', 'ingredients', <rang>, <champ>])

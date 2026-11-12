@@ -31,6 +31,9 @@ export async function clearRecipes(request, token) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
   const recipes = await (await request.get('/api/recipes', { headers })).json()
   for (const recipe of recipes) await request.delete(`/api/recipes/${recipe.id}`, { headers })
+  // Catégories aussi : sinon des onglets resteraient affichés d'un test à l'autre
+  const categories = await (await request.get('/api/categories', { headers })).json()
+  for (const c of categories) await request.delete(`/api/categories/${c.id}`, { headers })
 }
 
 export const test = base.extend({
