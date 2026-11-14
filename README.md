@@ -1,6 +1,6 @@
 # Mes Recettes
 
-[![CI](https://github.com/morgan46260/mes-recettes/actions/workflows/ci.yml/badge.svg)](https://github.com/morgan46260/mes-recettes/actions/workflows/ci.yml)
+[![CI](https://github.com/Morgan-Steunou/mes-recettes/actions/workflows/ci.yml/badge.svg)](https://github.com/Morgan-Steunou/mes-recettes/actions/workflows/ci.yml)
 
 Application web de gestion de recettes : interface **Vue 3** (TypeScript) + API **FastAPI** + templates **Jinja2** + base **PostgreSQL**, dans un seul projet.
 
