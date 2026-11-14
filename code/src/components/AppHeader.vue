@@ -54,9 +54,9 @@ async function logout() {
   position: sticky;
   top: 0;
   z-index: 10;
+  color: var(--header-text);
   background: var(--header-bg);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 3px solid var(--brass-fill);
 }
 .nav {
   display: flex;
@@ -69,11 +69,12 @@ async function logout() {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--text);
+  color: var(--header-brand);
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   /* Jamais sur deux lignes : en manque de place, les libellés sont masqués (voir plus bas) */
   white-space: nowrap;
 }
@@ -85,9 +86,12 @@ async function logout() {
   place-items: center;
   width: 32px;
   height: 32px;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-radius: 10px;
+  color: var(--on-brass);
+  background: var(--brass-fill);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.2);
 }
 .right {
   display: flex;
@@ -97,10 +101,6 @@ async function logout() {
 .links {
   display: flex;
   gap: 0.25rem;
-  padding: 0.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
 }
 .link {
   display: inline-flex;
@@ -109,7 +109,7 @@ async function logout() {
   padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--header-muted);
   border-radius: 999px;
   white-space: nowrap;
   transition:
@@ -117,12 +117,16 @@ async function logout() {
     background var(--transition);
 }
 .link:hover {
-  color: var(--text);
+  color: var(--header-text);
   text-decoration: none;
 }
 .link.router-link-exact-active {
-  color: var(--text);
-  background: var(--accent-soft);
+  color: var(--header-text);
+  box-shadow: inset 0 -2px 0 var(--brass-fill);
+  border-radius: 0;
+}
+.link:focus-visible {
+  border-radius: var(--radius-sm);
 }
 .user {
   display: inline-flex;
@@ -130,7 +134,7 @@ async function logout() {
   gap: 0.4rem;
   max-width: 8rem;
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--header-muted);
 }
 .username {
   overflow: hidden;

@@ -233,8 +233,13 @@ onMounted(load)
   gap: 1rem;
 }
 h2 {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--plaque);
+}
+:root[data-theme='dark'] h2 {
+  color: var(--brass);
 }
 .log .alert {
   margin-bottom: 0;

@@ -320,26 +320,25 @@ onMounted(load)
   display: grid;
   gap: 0.25rem;
   min-width: 7.5rem;
-  padding: 0.65rem 0.9rem;
+  padding: 0.55rem 0.9rem 0.6rem;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--plaque);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
 }
 .fact dt {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 .fact dd {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
 }
 .servings {
   display: flex;
@@ -380,8 +379,13 @@ onMounted(load)
   padding: 1.25rem 1.4rem;
 }
 h2 {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--plaque);
+}
+:root[data-theme='dark'] h2 {
+  color: var(--brass);
 }
 .note {
   font-size: 0.85rem;
@@ -406,12 +410,8 @@ h2 {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
-  padding: 0.4rem 0.2rem;
+  padding: 0.3rem 0.2rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border);
-}
-.ingredients li:last-child label {
-  border-bottom: 0;
 }
 .ingredients input {
   flex-shrink: 0;
@@ -421,12 +421,36 @@ h2 {
   accent-color: var(--accent);
   transform: translateY(2px);
 }
+/* Comme une carte de bistrot : le nom, des pointillés de laiton, puis la quantité.
+   L'ordre du texte (« 250 g Farine ») reste celui lu par les lecteurs d'écran. */
 .ingredient-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.ingredient-name {
+  order: 1;
+  min-width: 0;
+}
+.ingredient-text::after {
+  content: '';
+  order: 2;
+  flex: 1;
+  min-width: 1rem;
+  border-bottom: 2px dotted var(--brass-fill);
+  transform: translateY(-0.3em);
+}
+.ingredient-text:not(:has(.amount))::after {
+  display: none;
+}
 .amount {
+  order: 3;
+  flex-shrink: 0;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 .amount strong {
   color: var(--text);
@@ -461,13 +485,15 @@ h2 {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--accent-contrast);
-  background: var(--accent);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--on-brass);
+  background: var(--brass-fill);
   border-radius: 999px;
 }
 .step.done .number {
+  color: var(--accent-contrast);
   background: var(--success);
 }
 .step-text {

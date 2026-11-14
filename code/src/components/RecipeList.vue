@@ -26,13 +26,8 @@ function confirmRemove(recipe: Recipe) {
   }
 }
 
-// Vignette pastel propre à chaque recette : une des 5 teintes du thème, choisie selon son id
-function tileStyle(recipe: Recipe) {
-  return { background: `var(--tile-${(recipe.id % 5) + 1})` }
-}
-
-function initial(title: string) {
-  return [...title.trim()][0]?.toUpperCase() ?? '?'
+function cookedLabel(count: number) {
+  return count === 1 ? 'Cuisinée une fois' : `Cuisinée ${count} fois`
 }
 
 function servingsLabel(servings: number) {
@@ -66,16 +61,15 @@ function detailLink(recipe: Recipe) {
   </div>
 
   <TransitionGroup v-else tag="ul" name="recipe" class="list">
-    <li v-for="recipe in recipes" :key="recipe.id" class="recipe">
-      <!-- Vignette cliquable à la souris ; ignorée au clavier et par les lecteurs d'écran,
-           qui passent par le lien du titre -->
-      <RouterLink
-        :to="detailLink(recipe)"
-        class="tile"
-        :style="tileStyle(recipe)"
-        tabindex="-1"
-        aria-hidden="true"
-        >{{ initial(recipe.title) }}</RouterLink
+    <li v-for="recipe in recipes" :key="recipe.id" class="recipe plaque">
+      <!-- Médaille de laiton : nombre de fois où la recette a été cuisinée -->
+      <span
+        v-if="recipe.cooked_count"
+        class="medal"
+        :title="cookedLabel(recipe.cooked_count)"
+        :aria-label="cookedLabel(recipe.cooked_count)"
+        role="img"
+        >{{ recipe.cooked_count }}×</span
       >
 
       <div class="body">
@@ -137,56 +131,69 @@ function detailLink(recipe: Recipe) {
   padding: 0;
   list-style: none;
 }
+/* Chaque recette est une plaque émaillée à double filet (.plaque, dans main.css) */
 .recipe {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   min-width: 0;
-  padding: 0.75rem 0.75rem 0.85rem;
+  padding: 1.25rem 1.2rem 0.9rem;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--plaque);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  transition:
-    border-color var(--transition),
-    transform var(--transition),
-    box-shadow var(--transition);
+  transition: background var(--transition);
 }
 .recipe:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
+  background: var(--surface-hover);
 }
-.tile {
+.medal {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
   display: grid;
   place-items: center;
-  height: 120px;
+  width: 2.6rem;
+  height: 2.6rem;
   font-family: var(--font-display);
-  font-size: 3rem;
-  font-weight: 500;
-  color: var(--tile-text);
-  border-radius: var(--radius);
-}
-.tile:hover {
-  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--on-brass);
+  background: var(--brass-fill);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 4px var(--brass-fill),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.22);
 }
 .body {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
   flex: 1;
   align-content: start;
   min-width: 0;
-  padding: 0 0.3rem;
 }
+/* Titre en lettres de plaque ; place laissée à la médaille */
 .title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--text);
+  padding-right: 2.8rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--plaque);
   overflow-wrap: anywhere;
 }
+:root[data-theme='dark'] .title {
+  color: var(--text);
+}
 .title:hover {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--accent-hover);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 /* Description sur deux lignes au plus */
 .description {
@@ -218,8 +225,12 @@ function detailLink(recipe: Recipe) {
   margin: 0.2rem 0 0;
   padding: 0;
   list-style: none;
-  font-size: 0.8rem;
-  color: var(--text-faint);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.meta .cooked {
+  font-weight: 600;
+  color: var(--brass);
 }
 .meta li {
   display: inline-flex;
@@ -298,11 +309,5 @@ function detailLink(recipe: Recipe) {
 }
 .recipe-move {
   transition: transform 220ms ease;
-}
-
-@media (max-width: 560px) {
-  .tile {
-    height: 96px;
-  }
 }
 </style>

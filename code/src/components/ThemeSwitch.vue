@@ -32,8 +32,8 @@ const { isDark, toggleTheme } = useTheme()
   width: 64px;
   height: 34px;
   padding: 0 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
   transition:
     border-color var(--transition),
@@ -48,13 +48,13 @@ const { isDark, toggleTheme } = useTheme()
   display: grid;
   place-items: center;
   font-size: 0.9rem;
-  color: var(--text-faint);
+  color: var(--header-muted);
   transition: color var(--transition);
 }
 /* Icône du thème actif mise en valeur (au-dessus du curseur) */
 .switch[aria-checked='false'] .sun,
 .switch[aria-checked='true'] .moon {
-  color: var(--accent-contrast);
+  color: var(--on-brass);
 }
 .knob {
   position: absolute;
@@ -62,7 +62,7 @@ const { isDark, toggleTheme } = useTheme()
   left: 3px;
   width: 26px;
   height: 26px;
-  background: var(--accent);
+  background: var(--brass-fill);
   border-radius: 50%;
   box-shadow: 0 2px 8px -2px var(--accent-glow);
   transition: transform 220ms cubic-bezier(0.3, 1.4, 0.6, 1);

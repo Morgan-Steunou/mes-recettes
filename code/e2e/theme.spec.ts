@@ -22,7 +22,7 @@ test.describe('système en thème sombre', () => {
     // Attend la fin de la transition de couleur (200 ms)
     await expect
       .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
-      .toBe('rgb(247, 243, 236)')
+      .toBe('rgb(232, 235, 228)')
 
     await page.reload()
     expect(await currentTheme(page)).toBe('light')

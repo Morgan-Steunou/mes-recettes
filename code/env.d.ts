@@ -8,3 +8,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Police auto-hébergée sans déclaration de types (import de sa feuille de style seulement)
+declare module '@fontsource-variable/big-shoulders-display'
