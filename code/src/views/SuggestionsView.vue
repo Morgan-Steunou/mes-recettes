@@ -1,10 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
 import { STAPLES, addIngredients, knownIngredients, suggestRecipes } from '@/utils/suggest'
 import AppIcon from '@/components/AppIcon.vue'
+import type { LocationQuery } from 'vue-router'
+import type { Recipe } from '@/types/api'
+import type { Suggestion } from '@/utils/suggest'
 
 const store = useRecipesStore()
 const { recipes, loading, error } = storeToRefs(store)
@@ -18,12 +21,16 @@ const fromRoute = () =>
 const available = ref(fromRoute())
 const staples = computed({
   get: () => route.query.basiques !== 'non',
-  set: (value) => updateQuery({ basiques: value ? undefined : 'non' }),
+  set: (value: boolean) => updateQuery({ basiques: value ? undefined : 'non' }),
 })
 
-function updateQuery(changes) {
-  const query = { ...route.query, ...changes }
-  for (const key of Object.keys(query)) if (query[key] === undefined) delete query[key]
+// Une valeur undefined retire le paramètre de l'URL
+function updateQuery(changes: Record<string, string | undefined>) {
+  const query: LocationQuery = { ...route.query }
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) delete query[key]
+    else query[key] = value
+  }
   router.replace({ query })
 }
 watch(available, (list) => updateQuery({ avec: list.length ? list.join(',') : undefined }))
@@ -36,7 +43,7 @@ watch(
   },
 )
 
-const input = ref(null)
+const input = ref<HTMLInputElement | null>(null)
 const draft = ref('')
 
 function add(text = draft.value) {
@@ -45,7 +52,7 @@ function add(text = draft.value) {
   draft.value = ''
 }
 
-function remove(name) {
+function remove(name: string) {
   available.value = available.value.filter((n) => n !== name)
   input.value?.focus()
 }
@@ -56,15 +63,17 @@ function clearAll() {
 }
 
 // Choix d'une proposition de la liste : ajouté tout de suite
-function onInput(event) {
-  if (event.inputType === 'insertReplacementText' || event.inputType === undefined) {
+function onInput(event: Event) {
+  const { inputType } = event as InputEvent
+  if (inputType === 'insertReplacementText' || inputType === undefined) {
     if (known.value.includes(draft.value)) add()
   }
 }
 
 // Retour arrière dans un champ vide : retire le dernier ingrédient
 function onBackspace() {
-  if (!draft.value && available.value.length) remove(available.value.at(-1))
+  const last = available.value.at(-1)
+  if (!draft.value && last !== undefined) remove(last)
 }
 
 // Propositions : ingrédients des recettes, sauf ceux déjà ajoutés
@@ -96,15 +105,15 @@ const withoutIngredients = computed(
   () => recipes.value.filter((r) => !r.ingredients?.length).length,
 )
 
-function plural(count, word) {
+function plural(count: number, word: string) {
   return `${count} ${word}${count > 1 ? 's' : ''}`
 }
 
-function total(result) {
+function total(result: Suggestion) {
   return result.have.length + result.missing.length
 }
 
-function detailLink(recipe) {
+function detailLink(recipe: Recipe) {
   return { name: 'recipe-detail', params: { id: recipe.id } }
 }
 

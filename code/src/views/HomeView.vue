@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -15,6 +15,8 @@ import {
 } from '@/utils/search'
 import AppIcon from '@/components/AppIcon.vue'
 import RecipeList from '@/components/RecipeList.vue'
+import type { LocationQuery } from 'vue-router'
+import type { Option } from '@/utils/search'
 
 const store = useRecipesStore()
 const { recipes, loading, error, actionError, categories, categoriesLoaded } = storeToRefs(store)
@@ -24,13 +26,13 @@ const router = useRouter()
 // Recherche (titre et ingrédients), filtres et tri, gardés dans l'URL
 // (/?q=poulet&temps=30&faite=1m&tri=titre) : ils survivent au rechargement
 // et au retour depuis une fiche recette
-const searchInput = ref(null)
+const searchInput = ref<HTMLInputElement | null>(null)
 const queryFromRoute = () => (typeof route.query.q === 'string' ? route.query.q : '')
 // Saisie locale, recopiée dans l'URL (et relue si l'URL change : retour arrière, lien d'en-tête)
 const query = ref(queryFromRoute())
 watch(query, (value) => {
   if (value === queryFromRoute()) return
-  const { q, ...rest } = route.query // eslint-disable-line no-unused-vars
+  const { q, ...rest } = route.query // eslint-disable-line @typescript-eslint/no-unused-vars
   router.replace({ query: value.trim() ? { ...rest, q: value } : rest })
 })
 watch(queryFromRoute, (value) => {
@@ -38,11 +40,11 @@ watch(queryFromRoute, (value) => {
 })
 
 // Menu lié à un paramètre d'URL ; une valeur inconnue dans l'URL vaut « tous »
-function queryParam(key, options) {
+function queryParam(key: string, options: Option[]) {
   return computed({
     get: () => optionKey(options, route.query[key]),
-    set: (value) => {
-      const { [key]: _old, ...rest } = route.query // eslint-disable-line no-unused-vars
+    set: (value: string) => {
+      const { [key]: _old, ...rest } = route.query // eslint-disable-line @typescript-eslint/no-unused-vars
       router.replace({ query: value ? { ...rest, [key]: value } : rest })
     },
   })
@@ -61,8 +63,8 @@ const category = computed({
     if (categoriesLoaded.value && !categories.value.some((c) => String(c.id) === value)) return ''
     return value
   },
-  set: (value) => {
-    const { categorie: _old, ...rest } = route.query // eslint-disable-line no-unused-vars
+  set: (value: string) => {
+    const { categorie: _old, ...rest } = route.query // eslint-disable-line @typescript-eslint/no-unused-vars
     router.replace({ query: value ? { ...rest, categorie: value } : rest })
   },
 })
@@ -90,7 +92,7 @@ const filtered = computed(() => result.value.recipes)
 
 // Onglets : Toutes, chaque catégorie, puis « Sans catégorie » s'il y en a
 const tabs = computed(() => {
-  const count = (key) => allMatching.value.filter((r) => matchesCategory(r, key)).length
+  const count = (key: string) => allMatching.value.filter((r) => matchesCategory(r, key)).length
   const list = [{ key: '', label: 'Toutes', count: allMatching.value.length }]
   for (const c of categories.value) {
     list.push({ key: String(c.id), label: c.name, count: count(String(c.id)) })
@@ -112,17 +114,23 @@ const newRecipeLink = computed(() =>
 )
 
 // Flèches gauche / droite entre les onglets (comme un groupe de boutons radio)
-const tabButtons = ref([])
-function onTabKeydown(event, index) {
-  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+const tabButtons = ref<HTMLButtonElement[]>([])
+const ARROW_STEPS: Record<string, number> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+}
+function onTabKeydown(event: KeyboardEvent, index: number) {
+  const step = ARROW_STEPS[event.key]
   if (!step) return
   event.preventDefault()
   const next = (index + step + tabs.value.length) % tabs.value.length
-  category.value = tabs.value[next].key
+  category.value = tabs.value[next]?.key ?? ''
   tabButtons.value[next]?.focus()
 }
 
-function plural(count, word) {
+function plural(count: number, word: string) {
   return `${count} ${word}${count > 1 ? 's' : ''}`
 }
 
@@ -134,7 +142,7 @@ function clearSearch() {
 // Efface recherche et filtres (le tri et l'onglet choisis sont gardés). La saisie est vidée par
 // la synchronisation avec l'URL : la vider ici relancerait une navigation avec l'ancienne URL.
 function clearAll() {
-  const kept = {}
+  const kept: LocationQuery = {}
   if (sort.value) kept.tri = sort.value
   if (category.value) kept.categorie = category.value
   router.replace({ query: kept })
@@ -142,10 +150,14 @@ function clearAll() {
 }
 
 // Raccourci « / » pour aller dans la recherche (sauf pendant une saisie ailleurs)
-function onKeydown(event) {
+function onKeydown(event: KeyboardEvent) {
   if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return
   const target = event.target
-  if (target.closest?.('input, textarea, select, [contenteditable="true"]')) return
+  if (
+    target instanceof Element &&
+    target.closest('input, textarea, select, [contenteditable="true"]')
+  )
+    return
   if (!searchInput.value) return
   event.preventDefault()
   searchInput.value.focus()
@@ -248,7 +260,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         spellcheck="false"
         aria-keyshortcuts="/"
         aria-controls="recipe-results"
-        @keydown.esc="query ? clearSearch() : searchInput.blur()"
+        @keydown.esc="query ? clearSearch() : searchInput?.blur()"
       />
       <kbd v-if="!query" class="search-key" aria-hidden="true">/</kbd>
       <button

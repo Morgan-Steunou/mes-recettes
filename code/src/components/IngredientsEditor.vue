@@ -1,24 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
-import { ingredientRow } from '@/utils/recipe'
+import { ingredientRow, type IngredientRow } from '@/utils/recipe'
 
 // Lignes { key, quantity, unit, name } (texte), modifiées sur place
-const rows = defineModel({ type: Array, required: true })
+const rows = defineModel<IngredientRow[]>({ required: true })
 
 // Unités proposées à la saisie (l'unité reste libre)
 const UNITS = ['g', 'kg', 'ml', 'cl', 'l', 'c. à café', 'c. à soupe', 'pincée', 'tasse', 'tranche']
 
-const list = ref(null)
+const list = ref<HTMLElement | null>(null)
 
 // Ajoute une ligne vide après la ligne index (ou à la fin) et place le curseur dedans
 async function addRow(index = rows.value.length - 1) {
   rows.value.splice(index + 1, 0, ingredientRow())
   await nextTick()
-  list.value?.querySelectorAll('.quantity')[index + 1]?.focus()
+  list.value?.querySelectorAll<HTMLInputElement>('.quantity')[index + 1]?.focus()
 }
 
-function removeRow(index) {
+function removeRow(index: number) {
   rows.value.splice(index, 1)
   // Toujours au moins une ligne à remplir
   if (!rows.value.length) rows.value.push(ingredientRow())

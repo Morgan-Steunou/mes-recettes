@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/AppIcon.vue'
@@ -7,8 +7,8 @@ import ThemeSwitch from '@/components/ThemeSwitch.vue'
 const auth = useAuthStore()
 const router = useRouter()
 
-function logout() {
-  auth.logout()
+async function logout() {
+  await auth.logout()
   router.push({ name: 'login' })
 }
 </script>

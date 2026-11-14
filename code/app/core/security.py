@@ -1,4 +1,6 @@
-"""Mots de passe (hachage Argon2) et tokens d'accès (JWT signés)."""
+"""Mots de passe (hachage Argon2), tokens d'accès (JWT signés) et refresh tokens (aléatoires)."""
+import hashlib
+import secrets
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -52,3 +54,14 @@ def decode_access_token(token: str) -> int | None:
         return int(payload["sub"])
     except (TypeError, ValueError):
         return None
+
+
+def new_refresh_token() -> str:
+    """Refresh token : 256 bits aléatoires, opaque (aucune information dedans)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(token: str) -> str:
+    """Empreinte stockée en base. SHA-256 suffit : le token est aléatoire et long, il ne se
+    devine pas comme un mot de passe."""
+    return hashlib.sha256(token.encode()).hexdigest()

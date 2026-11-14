@@ -1,0 +1,6 @@
+// Vérification des types (npm run type-check, lancée aussi par npm run build) : deux projets,
+// le code de l'interface (navigateur) et les fichiers exécutés par Node (configs, tests E2E)
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

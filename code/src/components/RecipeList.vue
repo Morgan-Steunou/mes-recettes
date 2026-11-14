@@ -1,45 +1,49 @@
-<script setup>
+<script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue'
 import { formatDuration, totalTime } from '@/utils/recipe'
 import { relativeDay } from '@/utils/dates'
+import type { Recipe } from '@/types/api'
 
-const props = defineProps({
-  recipes: { type: Array, required: true },
-  // Ingrédients trouvés par la recherche, par id de recette : { 12: ['Blanc de poulet'] }
-  ingredientHits: { type: Object, default: () => ({}) },
-  // Catégorie affichée sur la carte (inutile dans l'onglet d'une catégorie)
-  showCategory: { type: Boolean, default: false },
-})
+const props = withDefaults(
+  defineProps<{
+    recipes: Recipe[]
+    // Ingrédients trouvés par la recherche, par id de recette : { 12: ['Blanc de poulet'] }
+    ingredientHits?: Record<number, string[]>
+    // Catégorie affichée sur la carte (inutile dans l'onglet d'une catégorie)
+    showCategory?: boolean
+  }>(),
+  { ingredientHits: () => ({}), showCategory: false },
+)
 
-function hits(recipe) {
+function hits(recipe: Recipe): string[] {
   return props.ingredientHits[recipe.id] ?? []
 }
-const emit = defineEmits(['remove'])
+const emit = defineEmits<{ remove: [id: number] }>()
 
-function confirmRemove(recipe) {
+function confirmRemove(recipe: Recipe) {
   if (window.confirm(`Supprimer la recette « ${recipe.title} » ? Cette action est définitive.`)) {
     emit('remove', recipe.id)
   }
 }
 
 // Vignette pastel propre à chaque recette : une des 5 teintes du thème, choisie selon son id
-function tileStyle(recipe) {
+function tileStyle(recipe: Recipe) {
   return { background: `var(--tile-${(recipe.id % 5) + 1})` }
 }
 
-function initial(title) {
+function initial(title: string) {
   return [...title.trim()][0]?.toUpperCase() ?? '?'
 }
 
-function servingsLabel(servings) {
+function servingsLabel(servings: number) {
   return `${servings} portion${servings > 1 ? 's' : ''}`
 }
 
-function ingredientsLabel(count) {
+function ingredientsLabel(count: number) {
   return `${count} ingrédient${count > 1 ? 's' : ''}`
 }
 
-function hasMeta(recipe) {
+function hasMeta(recipe: Recipe) {
   return (
     (props.showCategory && recipe.category) ||
     recipe.servings ||
@@ -49,7 +53,7 @@ function hasMeta(recipe) {
   )
 }
 
-function detailLink(recipe) {
+function detailLink(recipe: Recipe) {
   return { name: 'recipe-detail', params: { id: recipe.id } }
 }
 </script>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 const stack = [
   { name: 'Vue 3', role: 'Interface', detail: 'Vite, Vue Router, Pinia' },
   { name: 'FastAPI', role: 'API', detail: 'Pydantic, SQLAlchemy' },

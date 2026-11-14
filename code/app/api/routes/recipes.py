@@ -32,7 +32,7 @@ def create_recipe(data: RecipeCreate, service: RecipeService = Depends(get_recip
     try:
         return service.create(data)
     except CategoryNotFoundError:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, CATEGORY_NOT_FOUND) from None
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, CATEGORY_NOT_FOUND) from None
 
 
 @router.put("/{recipe_id}", response_model=Recipe)
@@ -42,7 +42,7 @@ def update_recipe(
     try:
         recipe = service.update(recipe_id, data)
     except CategoryNotFoundError:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, CATEGORY_NOT_FOUND) from None
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, CATEGORY_NOT_FOUND) from None
     if recipe is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
     return recipe

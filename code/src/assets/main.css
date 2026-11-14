@@ -1,6 +1,6 @@
 /* Variables de design utilisées par tous les composants : thème « Carnet ».
    Clair (crème et terracotta) par défaut ; le thème sombre « veillée » redéfinit les couleurs.
-   Le thème actif est l'attribut data-theme de <html> (posé par index.html et useTheme.js).
+   Le thème actif est l'attribut data-theme de <html> (posé par public/theme-init.js et useTheme.ts).
    Contrastes du texte vérifiés (WCAG AA) sur le fond et sur les surfaces, dans les deux thèmes. */
 :root {
   color-scheme: light;

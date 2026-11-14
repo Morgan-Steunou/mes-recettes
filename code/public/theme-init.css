@@ -1,0 +1,7 @@
+/* Fond de la page avant le chargement de l'interface (voir theme-init.js) */
+html {
+  background: #f7f3ec;
+}
+html[data-theme='dark'] {
+  background: #171310;
+}

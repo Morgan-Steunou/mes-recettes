@@ -1,0 +1,14 @@
+// Fichiers exécutés par Node : configuration des outils et tests E2E (Playwright)
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": ["*.config.ts", "e2e/**/*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    // DOM : les fonctions passées à page.evaluate() s'exécutent dans le navigateur
+    "lib": ["ES2024", "DOM"]
+  }
+}

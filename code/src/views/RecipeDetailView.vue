@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
@@ -12,30 +12,32 @@ import {
   splitSteps,
   totalTime,
 } from '@/utils/recipe'
+import { errorText } from '@/services/api'
+import type { Ingredient, Recipe } from '@/types/api'
 
-const props = defineProps({
-  id: { type: String, required: true },
-})
+const props = defineProps<{ id: string }>()
 
 const store = useRecipesStore()
 const router = useRouter()
 
-const recipe = ref(null)
+const recipe = ref<Recipe | null>(null)
 const loading = ref(true)
-const loadError = ref(null)
-const deleteError = ref(null)
+const loadError = ref<string | null>(null)
+const deleteError = ref<string | null>(null)
 // Historique des repas (bas de page), ouvert aussi par le bouton du haut
-const log = ref(null)
+const log = ref<InstanceType<typeof CookingLog> | null>(null)
 
 // « Cuisinée 3 fois, la dernière il y a 5 jours »
 const cookedSummary = computed(() => {
   const count = recipe.value?.cooked_count ?? 0
-  if (!count) return 'Pas encore cuisinée'
+  const last = recipe.value?.last_cooked_on
+  if (!count || !last) return 'Pas encore cuisinée'
   const times = count === 1 ? 'une fois' : `${count} fois`
-  return `Cuisinée ${times}, la dernière ${relativeDay(recipe.value.last_cooked_on)}`
+  return `Cuisinée ${times}, la dernière ${relativeDay(last)}`
 })
 
-function onCookingsChanged(updated) {
+function onCookingsChanged(updated: Recipe) {
+  if (!recipe.value) return
   recipe.value = {
     ...recipe.value,
     cooked_count: updated.cooked_count,
@@ -44,66 +46,71 @@ function onCookingsChanged(updated) {
 }
 
 // Portions choisies pour adapter les quantités (si la recette indique ses portions)
-const servings = ref(null)
+const servings = ref<number | null>(null)
 // Cases cochées pendant la préparation (non enregistrées)
-const doneIngredients = ref(new Set())
-const doneSteps = ref(new Set())
+const doneIngredients = ref(new Set<number>())
+const doneSteps = ref(new Set<number>())
 
 const steps = computed(() => splitSteps(recipe.value?.steps))
 const times = computed(() => {
   if (!recipe.value) return []
-  const list = [
+  const all: [string, number | null][] = [
     ['Préparation', recipe.value.prep_time_minutes],
     ['Cuisson', recipe.value.cook_time_minutes],
-  ].filter(([, minutes]) => minutes != null)
+  ]
+  const list = all.filter(([, minutes]) => minutes != null)
   // Le total n'apporte rien si un seul temps est renseigné
   if (list.length === 2) list.push(['Total', totalTime(recipe.value)])
   return list.map(([label, minutes]) => ({ label, value: formatDuration(minutes) }))
 })
 const scaled = computed(() => servings.value !== recipe.value?.servings)
 
-function quantityOf(ingredient) {
-  return formatQuantity(scaleQuantity(ingredient.quantity, recipe.value.servings, servings.value))
+function quantityOf(ingredient: Ingredient) {
+  const base = recipe.value?.servings ?? null
+  return formatQuantity(scaleQuantity(ingredient.quantity, base, servings.value))
 }
 
 // Coche ou décoche l'élément index (le Set est remplacé pour que Vue voie le changement)
-function toggled(set, index) {
+function toggled(set: Set<number>, index: number) {
   const next = new Set(set)
   if (next.has(index)) next.delete(index)
   else next.add(index)
   return next
 }
 
-function toggleIngredient(index) {
+function toggleIngredient(index: number) {
   doneIngredients.value = toggled(doneIngredients.value, index)
 }
 
-function toggleStep(index) {
+function toggleStep(index: number) {
   doneSteps.value = toggled(doneSteps.value, index)
 }
 
-function changeServings(delta) {
-  servings.value = Math.min(100, Math.max(1, servings.value + delta))
+function changeServings(delta: number) {
+  servings.value = Math.min(100, Math.max(1, (servings.value ?? 1) + delta))
 }
 
 async function load() {
   try {
-    recipe.value = await store.fetchRecipe(Number(props.id))
-    servings.value = recipe.value.servings
+    const loaded = await store.fetchRecipe(Number(props.id))
+    recipe.value = loaded
+    servings.value = loaded.servings
   } catch (e) {
-    loadError.value = e.message
+    loadError.value = errorText(e)
   } finally {
     loading.value = false
   }
 }
 
 async function remove() {
+  const current = recipe.value
   if (
-    !window.confirm(`Supprimer la recette « ${recipe.value.title} » ? Cette action est définitive.`)
+    !current ||
+    !window.confirm(`Supprimer la recette « ${current.title} » ? Cette action est définitive.`)
   )
     return
   deleteError.value = null
-  if (await store.removeRecipe(recipe.value.id)) router.push({ name: 'home' })
+  if (await store.removeRecipe(current.id)) router.push({ name: 'home' })
   else deleteError.value = store.actionError
 }
 
@@ -120,7 +127,7 @@ onMounted(load)
     <span class="alert-text">{{ loadError }}</span>
   </div>
 
-  <article v-else class="recipe">
+  <article v-else-if="recipe" class="recipe">
     <header class="hero">
       <div class="heading">
         <p class="eyebrow">
@@ -137,7 +144,7 @@ onMounted(load)
         <p class="cooked" aria-live="polite"><AppIcon name="history" /> {{ cookedSummary }}</p>
       </div>
       <div class="actions">
-        <button type="button" class="btn" @click="log.open()">
+        <button type="button" class="btn" @click="log?.open()">
           <AppIcon name="check" /> Je l'ai cuisinée
         </button>
         <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-ghost">
@@ -162,7 +169,7 @@ onMounted(load)
             type="button"
             class="step-btn"
             aria-label="Une portion de moins"
-            :disabled="servings <= 1"
+            :disabled="!servings || servings <= 1"
             @click="changeServings(-1)"
           >
             −
@@ -172,7 +179,7 @@ onMounted(load)
             type="button"
             class="step-btn"
             aria-label="Une portion de plus"
-            :disabled="servings >= 100"
+            :disabled="!servings || servings >= 100"
             @click="changeServings(1)"
           >
             +
@@ -189,8 +196,10 @@ onMounted(load)
       <section class="panel card" aria-labelledby="ingredients-title">
         <h2 id="ingredients-title">Ingrédients</h2>
         <p v-if="scaled" class="note">
-          Quantités adaptées pour {{ servings }} portion{{ servings > 1 ? 's' : '' }} (recette
-          prévue pour {{ recipe.servings }}).
+          Quantités adaptées pour {{ servings }} portion{{
+            (servings ?? 0) > 1 ? 's' : ''
+          }}
+          (recette prévue pour {{ recipe.servings }}).
           <button type="button" class="link" @click="servings = recipe.servings">
             Revenir à {{ recipe.servings }}
           </button>

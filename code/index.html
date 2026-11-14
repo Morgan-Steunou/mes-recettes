@@ -6,34 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#f7f3ec" />
-    <script>
-      // Applique le thème avant l'affichage (évite un flash de la mauvaise couleur) :
-      // choix enregistré, sinon préférence du système. Voir src/composables/useTheme.js
-      try {
-        var saved = localStorage.getItem('mes-recettes.theme')
-        var theme =
-          saved === 'light' || saved === 'dark'
-            ? saved
-            : matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light'
-        document.documentElement.dataset.theme = theme
-      } catch (e) {
-        // Stockage indisponible : thème clair par défaut
-      }
-    </script>
-    <style>
-      html {
-        background: #f7f3ec;
-      }
-      html[data-theme='dark'] {
-        background: #171310;
-      }
-    </style>
+    <!-- Thème appliqué avant l'affichage (fichiers de public/, sans script ni style en ligne) -->
+    <script src="/theme-init.js"></script>
+    <link rel="stylesheet" href="/theme-init.css" />
     <title>Mes Recettes</title>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

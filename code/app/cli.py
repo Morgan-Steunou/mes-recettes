@@ -1,6 +1,8 @@
 """Commandes d'administration, à lancer depuis code/ :
 
     python -m app.cli create-user <identifiant>
+    python -m app.cli migrate
+    python -m app.cli revoke-sessions <identifiant>
 
 Le mot de passe est demandé de façon masquée. Pour un script, il peut être fourni sur
 l'entrée standard avec --password-stdin (jamais en argument : il resterait dans l'historique).
@@ -14,6 +16,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.database import SessionLocal, init_db
 from app.schemas.user import UserCreate
+from app.services.session_service import SessionService
 from app.services.user_service import UsernameTakenError, UserService
 
 
@@ -54,6 +57,25 @@ def create_user(username: str, password_stdin: bool, if_not_exists: bool = False
                 print(f"{claimed} recette(s) existante(s) rattachée(s) à ce compte.")
 
 
+def revoke_sessions(username: str) -> None:
+    """Déconnecte un utilisateur de partout (compte compromis, appareil perdu...).
+
+    Les tokens d'accès déjà délivrés restent valables jusqu'à leur expiration (15 min par défaut).
+    """
+    with SessionLocal() as db:
+        user = UserService(db).get_by_username(username)
+        if user is None:
+            sys.exit(f"Aucun compte « {username} ».")
+        count = SessionService(db).end_all(user.id)
+        print(f"{count} session(s) de « {user.username} » révoquée(s).")
+
+
+def migrate() -> None:
+    """Applique les migrations Alembic manquantes (à lancer une fois avant l'API en production)."""
+    init_db()
+    print("Base de données à jour.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m app.cli", description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -69,9 +91,18 @@ def main() -> None:
         action="store_true",
         help="Ne pas échouer si le compte existe déjà (son mot de passe n'est pas modifié)",
     )
+    commands.add_parser("migrate", help="Applique les migrations de la base de données")
+    revoke = commands.add_parser(
+        "revoke-sessions", help="Déconnecte un utilisateur sur tous ses appareils"
+    )
+    revoke.add_argument("username", help="Identifiant du compte")
     args = parser.parse_args()
     if args.command == "create-user":
         create_user(args.username, args.password_stdin, args.if_not_exists)
+    elif args.command == "migrate":
+        migrate()
+    elif args.command == "revoke-sessions":
+        revoke_sessions(args.username)
 
 
 if __name__ == "__main__":

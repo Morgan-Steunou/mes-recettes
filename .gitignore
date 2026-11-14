@@ -28,3 +28,8 @@ blob-report/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Couverture des tests
+.coverage
+coverage.xml
+htmlcov/

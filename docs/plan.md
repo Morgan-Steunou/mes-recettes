@@ -18,12 +18,12 @@ Le développement avance par petites étapes. Chacune est une fonctionnalité co
 
 ## Phase 3 : Recherche
 
-- [x] **7. Recherche par titre.** Barre de recherche sur la liste, sans tenir compte des accents ni des majuscules, mots dans n'importe quel ordre. Filtrage dans le navigateur (`src/utils/search.js`), recherche gardée dans l'URL (`/?q=…`), raccourcis « / » et Échap.
+- [x] **7. Recherche par titre.** Barre de recherche sur la liste, sans tenir compte des accents ni des majuscules, mots dans n'importe quel ordre. Filtrage dans le navigateur (`src/utils/search.ts`), recherche gardée dans l'URL (`/?q=…`), raccourcis « / » et Échap.
 - [x] **8. Recherche par ingrédient et filtres.** Par exemple « avec du poulet », « moins de 30 minutes », « pas faite depuis un mois », avec un tri. La recherche porte sur le titre et les ingrédients (petits mots et pluriels ignorés, ingrédients trouvés affichés sur la carte) ; menus « Temps total », « Dernière fois » et « Trier par », gardés dans l'URL (`?temps=30&faite=1m&tri=titre`) ; « Tout effacer ».
 
 ## Phase 4 : Recettes à partir d'ingrédients
 
-- [x] **9. Suggestions parmi vos recettes.** On saisit les ingrédients disponibles ; l'application classe les recettes selon leur correspondance et montre les ingrédients manquants. Page « Que cuisiner ? » (`/que-cuisiner`) : ingrédients en étiquettes (Entrée, virgules, propositions tirées des recettes), recettes « Prêtes à cuisiner » puis « Il manque quelques ingrédients », du moins au plus manquant ; sel, poivre, huile et eau comptés comme toujours disponibles (option). Correspondance par mots entiers (`src/utils/suggest.js`) : « poulet » trouve « Blanc de poulet », « eau » ne trouve pas « Veau » ; limite connue : « pomme » trouve aussi « Pommes de terre ».
+- [x] **9. Suggestions parmi vos recettes.** On saisit les ingrédients disponibles ; l'application classe les recettes selon leur correspondance et montre les ingrédients manquants. Page « Que cuisiner ? » (`/que-cuisiner`) : ingrédients en étiquettes (Entrée, virgules, propositions tirées des recettes), recettes « Prêtes à cuisiner » puis « Il manque quelques ingrédients », du moins au plus manquant ; sel, poivre, huile et eau comptés comme toujours disponibles (option). Correspondance par mots entiers (`src/utils/suggest.ts`) : « poulet » trouve « Blanc de poulet », « eau » ne trouve pas « Veau » ; limite connue : « pomme » trouve aussi « Pommes de terre ».
 - [ ] **10. Création automatique par IA.** *En attente, décision reportée.* Proposer une nouvelle recette en brouillon à partir des ingrédients, via l'API Claude. Coût estimé : quelques centimes à moins d'un euro par mois pour un usage personnel. Implique un compte sur la Console Anthropic, une clé d'API dans `.env` et une connexion internet ; la fonction resterait optionnelle.
 
 ## Ajouts

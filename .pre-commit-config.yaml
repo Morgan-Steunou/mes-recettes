@@ -10,30 +10,35 @@
 repos:
   # Python : Ruff (même version que dans requirements-dev.txt, config dans code/pyproject.toml)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.17.5
     hooks:
       - id: ruff
         name: ruff (Python)
         args: [--fix]
         files: ^code/(app|tests|migrations)/
+      # tasks.py est hors de code/ (pas de pyproject.toml) : même longueur de ligne
+      - id: ruff
+        name: ruff (tasks.py)
+        args: [--fix, --line-length=100]
+        files: ^tasks\.py$
 
   # Vue / JavaScript : outils installés dans code/node_modules (npm install)
   - repo: local
     hooks:
       - id: prettier
-        name: prettier (formatage Vue/JS/CSS)
+        name: prettier (formatage Vue/TS/JS/CSS)
         language: system
         entry: node code/node_modules/prettier/bin/prettier.cjs --write --ignore-unknown
-        files: ^code/((src|e2e)/|[^/]+\.config\.js$)
+        files: ^code/((src|e2e|public)/|[^/]+\.config\.ts$|tsconfig[^/]*\.json$|env\.d\.ts$)
       - id: eslint
-        name: eslint (Vue/JS)
+        name: eslint (Vue/TS/JS)
         language: system
-        entry: node code/node_modules/eslint/bin/eslint.js --fix --max-warnings 0 --config code/eslint.config.js
-        files: ^code/((src|e2e)/.*\.(js|vue)$|[^/]+\.config\.js$)
+        entry: node code/node_modules/eslint/bin/eslint.js --fix --max-warnings 0 --config code/eslint.config.ts
+        files: ^code/((src|e2e|public)/.*\.(ts|js|vue)$|[^/]+\.config\.ts$|env\.d\.ts$)
 
       - id: no-bidi-characters
         name: caractères d'inversion de sens interdits (Trojan Source)
         description: Écrire l'échappement (ex. \u202e) plutôt que le caractère invisible ; motif sur les octets UTF-8
         language: pygrep
         entry: '\xe2\x80[\xaa-\xae]|\xe2\x81[\xa6-\xa9]'
-        files: ^code/.*\.(py|js|vue|css|html)$
+        files: ^code/.*\.(py|ts|js|vue|css|html)$

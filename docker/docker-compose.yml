@@ -57,13 +57,13 @@ services:
       - "5174:5173"
     environment:
       - VITE_PROXY_TARGET=http://api:8000
-      # Rechargement à chaud des fichiers montés (voir vite.config.js)
+      # Rechargement à chaud des fichiers montés (voir vite.config.ts)
       - VITE_USE_POLLING=true
     volumes:
       - ../code/src:/srv/code/src
       - ../code/public:/srv/code/public
       - ../code/index.html:/srv/code/index.html
-      - ../code/vite.config.js:/srv/code/vite.config.js
+      - ../code/vite.config.ts:/srv/code/vite.config.ts
     depends_on:
       - api
 
