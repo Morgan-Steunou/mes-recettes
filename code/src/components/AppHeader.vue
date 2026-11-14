@@ -181,6 +181,12 @@ async function logout() {
     white-space: nowrap;
   }
 }
+/* Lettres de plaque plus petites tant que la place manque (compte et déconnexion compris) */
+@media (max-width: 600px) {
+  .brand {
+    font-size: 1.3rem;
+  }
+}
 @media (max-width: 480px) {
   .brand-name {
     display: none;
