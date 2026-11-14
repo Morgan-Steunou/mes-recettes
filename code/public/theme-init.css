@@ -1,7 +1,7 @@
 /* Fond de la page avant le chargement de l'interface (voir theme-init.js) */
 html {
-  background: #f7f3ec;
+  background: #e8ebe4;
 }
 html[data-theme='dark'] {
-  background: #171310;
+  background: #0e1d17;
 }

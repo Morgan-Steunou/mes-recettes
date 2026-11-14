@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mes-recettes.theme'
 
 export type Theme = 'dark' | 'light'
 
-const THEME_COLORS: Record<Theme, string> = { dark: '#171310', light: '#f7f3ec' }
+const THEME_COLORS: Record<Theme, string> = { dark: '#08130e', light: '#173f31' }
 
 const root = document.documentElement
 const systemLight = window.matchMedia('(prefers-color-scheme: light)')

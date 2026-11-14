@@ -1,64 +1,74 @@
-/* Variables de design utilisées par tous les composants : thème « Carnet ».
-   Clair (crème et terracotta) par défaut ; le thème sombre « veillée » redéfinit les couleurs.
+/* Variables de design utilisées par tous les composants : thème « Plaque émaillée ».
+   Le bistrot : plaques émaillées vert bouteille à double filet, laiton, tomate pour l'action
+   principale. Clair (émail sur mur gris-vert) par défaut ; le thème sombre « arrière-salle »
+   redéfinit les couleurs.
    Le thème actif est l'attribut data-theme de <html> (posé par public/theme-init.js et useTheme.ts).
-   Contrastes du texte vérifiés (WCAG AA) sur le fond et sur les surfaces, dans les deux thèmes. */
+   Contrastes du texte visés WCAG AA sur le fond et sur les surfaces, dans les deux thèmes. */
 :root {
   color-scheme: light;
 
-  /* Fonds et surfaces */
-  --bg: #f7f3ec;
-  --surface: #fffdf9;
+  /* Fonds et surfaces : le mur, puis l'émail des plaques */
+  --bg: #e8ebe4;
+  --surface: #f8faf5;
   --surface-hover: #ffffff;
-  --surface-strong: #fffdf9;
-  --surface-sunken: #f1ebe2;
-  --border: rgba(70, 45, 25, 0.1);
-  --border-strong: rgba(70, 45, 25, 0.2);
-  --header-bg: rgba(247, 243, 236, 0.85);
+  --surface-strong: #f8faf5;
+  --surface-sunken: #dfe4da;
+  --border: rgba(23, 63, 49, 0.16);
+  --border-strong: rgba(23, 63, 49, 0.4);
   --input-bg: #ffffff;
 
-  /* Texte */
-  --text: #2a211b;
-  --text-muted: #6b5d52;
-  --text-faint: #7a6b5f;
+  /* Plaque : filet vert bouteille ; laiton (--brass pour le texte, --brass-fill pour les médailles) */
+  --plaque: #173f31;
+  --on-plaque: #f3f6ef;
+  --brass: #7f5c22;
+  --brass-fill: #c09245;
+  --on-brass: #1c1407;
 
-  /* Accent terracotta ; --accent-contrast : texte posé sur l'accent */
-  --accent: #c2410c;
-  --accent-hover: #9a3412;
-  --accent-contrast: #ffffff;
-  --accent-soft: rgba(194, 65, 12, 0.1);
-  --accent-glow: rgba(194, 65, 12, 0.45);
+  /* En-tête : bandeau vert */
+  --header-bg: #173f31;
+  --header-text: #f3f6ef;
+  --header-muted: rgba(243, 246, 239, 0.72);
+  --header-brand: #d9ae63;
+
+  /* Texte */
+  --text: #1e2a25;
+  --text-muted: #4b5a52;
+  --text-faint: #56655d;
+
+  /* Accent vert bouteille (liens, onglets, focus) ; --accent-contrast : texte posé sur l'accent */
+  --accent: #173f31;
+  --accent-hover: #0d2a20;
+  --accent-contrast: #f3f6ef;
+  --accent-soft: rgba(23, 63, 49, 0.1);
+  --accent-glow: rgba(23, 63, 49, 0.35);
+
+  /* Action principale : tomate */
+  --cta: #b5332a;
+  --cta-hover: #962820;
+  --cta-contrast: #ffffff;
 
   /* États */
-  --danger: #b91c1c;
-  --danger-soft: rgba(185, 28, 28, 0.07);
-  --danger-border: rgba(185, 28, 28, 0.25);
-  --danger-text: #7f1d1d;
-  --info-soft: rgba(194, 65, 12, 0.07);
-  --info-border: rgba(194, 65, 12, 0.22);
-  --info-text: #9a3412;
-  --success: #4d7c0f;
+  --danger: #b5332a;
+  --danger-soft: rgba(181, 51, 42, 0.08);
+  --danger-border: rgba(181, 51, 42, 0.28);
+  --danger-text: #7d1f18;
+  --info-soft: rgba(127, 92, 34, 0.08);
+  --info-border: rgba(127, 92, 34, 0.28);
+  --info-text: #6b4c1b;
+  --success: #2f6b4f;
+  --scrollbar: rgba(23, 63, 49, 0.25);
 
-  /* Vignettes des recettes (pastels) et leur lettre */
-  --tile-1: #f6dcc8;
-  --tile-2: #e3e6cf;
-  --tile-3: #f3d6d0;
-  --tile-4: #f6e6c0;
-  --tile-5: #d9e4dc;
-  --tile-text: rgba(70, 45, 25, 0.55);
-  --scrollbar: rgba(70, 45, 25, 0.2);
-
-  /* Formes et effets */
-  --radius-sm: 10px;
-  --radius: 14px;
-  --radius-lg: 20px;
-  --shadow: 0 1px 2px rgba(70, 45, 25, 0.05), 0 12px 28px -16px rgba(70, 45, 25, 0.25);
-  --ring: 0 0 0 3px rgba(194, 65, 12, 0.28);
+  /* Formes et effets : coins d'une plaque émaillée, ombre très courte */
+  --radius-sm: 6px;
+  --radius: 9px;
+  --radius-lg: 13px;
+  --shadow: 0 1px 0 rgba(23, 63, 49, 0.12), 0 10px 22px -18px rgba(23, 63, 49, 0.45);
+  --ring: 0 0 0 3px rgba(192, 146, 69, 0.6);
   --transition: 160ms ease;
 
-  /* Polices : serif pour les titres, sans-serif pour le texte */
-  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
-  --font-body:
-    'Inter Variable', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Polices : lettres de plaque condensées pour les titres, Barlow pour le texte */
+  --font-display: 'Big Shoulders Display Variable', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-body: 'Barlow', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
   font-family: var(--font-body);
   font-size: 16px;
@@ -68,49 +78,56 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Thème sombre « veillée » : bruns chauds, accent terracotta éclairci, texte foncé sur l'accent */
+/* Thème sombre « arrière-salle » : vert très foncé, filets vert clair, laiton et tomate éclaircis */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #171310;
-  --surface: #211b17;
-  --surface-hover: #2a231e;
-  --surface-strong: #211b17;
-  --surface-sunken: #1b1613;
-  --border: rgba(255, 236, 214, 0.09);
-  --border-strong: rgba(255, 236, 214, 0.18);
-  --header-bg: rgba(23, 19, 16, 0.85);
-  --input-bg: #120f0c;
+  --bg: #0e1d17;
+  --surface: #162a22;
+  --surface-hover: #1d352b;
+  --surface-strong: #162a22;
+  --surface-sunken: #0b1712;
+  --border: rgba(214, 235, 222, 0.11);
+  --border-strong: rgba(214, 235, 222, 0.28);
+  --input-bg: #0a1510;
 
-  --text: #f3ebe2;
-  --text-muted: #b9aa9c;
-  --text-faint: #9a8b7d;
+  --plaque: #4f9a7c;
+  --on-plaque: #0a1a13;
+  --brass: #dcb470;
+  --brass-fill: #d3a85c;
+  --on-brass: #1c1407;
 
-  --accent: #f0855a;
-  --accent-hover: #f59e78;
-  --accent-contrast: #1f0f07;
-  --accent-soft: rgba(240, 133, 90, 0.14);
+  --header-bg: #08130e;
+  --header-text: #edf0e8;
+  --header-muted: rgba(237, 240, 232, 0.7);
+  --header-brand: #dcb470;
+
+  --text: #edf0e8;
+  --text-muted: #adbcb2;
+  --text-faint: #93a59a;
+
+  --accent: #8fd0b2;
+  --accent-hover: #ace0c7;
+  --accent-contrast: #0a1a13;
+  --accent-soft: rgba(143, 208, 178, 0.13);
   --accent-glow: rgba(0, 0, 0, 0.5);
 
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --danger-border: rgba(248, 113, 113, 0.3);
-  --danger-text: #fecaca;
-  --info-soft: rgba(240, 133, 90, 0.1);
-  --info-border: rgba(240, 133, 90, 0.3);
-  --info-text: #fdba8c;
-  --success: #a3e635;
+  --cta: #ef7b6e;
+  --cta-hover: #f5978c;
+  --cta-contrast: #2a0d09;
 
-  --tile-1: #4a3328;
-  --tile-2: #3d4230;
-  --tile-3: #4a302d;
-  --tile-4: #4a3f26;
-  --tile-5: #2f3d35;
-  --tile-text: rgba(255, 236, 214, 0.55);
-  --scrollbar: rgba(255, 236, 214, 0.14);
+  --danger: #f28b80;
+  --danger-soft: rgba(242, 139, 128, 0.12);
+  --danger-border: rgba(242, 139, 128, 0.32);
+  --danger-text: #fdd0ca;
+  --info-soft: rgba(220, 180, 112, 0.1);
+  --info-border: rgba(220, 180, 112, 0.3);
+  --info-text: #e8c88f;
+  --success: #8fd0b2;
+  --scrollbar: rgba(214, 235, 222, 0.16);
 
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 36px -18px rgba(0, 0, 0, 0.7);
-  --ring: 0 0 0 3px rgba(240, 133, 90, 0.4);
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 14px 30px -18px rgba(0, 0, 0, 0.75);
+  --ring: 0 0 0 3px rgba(220, 180, 112, 0.55);
 }
 
 *,
@@ -138,9 +155,10 @@ h2,
 h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 p {
@@ -238,18 +256,17 @@ button {
   padding: 0.7rem 1.3rem;
   font-weight: 600;
   font-size: 0.95rem;
-  color: var(--accent-contrast);
-  background: var(--accent);
+  color: var(--cta-contrast);
+  background: var(--cta);
   border: 0;
   border-radius: 999px;
-  box-shadow: 0 6px 16px -8px var(--accent-glow);
   transition:
     transform var(--transition),
     box-shadow var(--transition),
     filter var(--transition);
 }
 .btn:hover {
-  background: var(--accent-hover);
+  background: var(--cta-hover);
   text-decoration: none;
 }
 .btn:active {
@@ -299,12 +316,17 @@ a:focus-visible {
   flex-shrink: 0;
 }
 
-/* Carte translucide réutilisable */
+/* Plaque émaillée réutilisable : fond d'émail, filet vert */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--plaque);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+}
+/* Double filet des plaques (cartes de recette, encadrés de la fiche) */
+.plaque {
+  outline: 1px solid var(--plaque);
+  outline-offset: -7px;
 }
 
 /* Barre de défilement assortie au thème */
@@ -359,19 +381,23 @@ a:focus-visible {
   background: var(--danger-soft);
 }
 
-/* En-tête de page : petit surtitre, grand titre en serif, sous-titre */
+/* En-tête de page : surtitre en laiton, grand titre en lettres de plaque, sous-titre */
 .eyebrow {
-  margin-bottom: 0.35rem;
-  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent);
+  color: var(--brass);
 }
 .page-title {
-  font-size: clamp(2.2rem, 5vw, 3rem);
-  font-weight: 600;
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  font-weight: 900;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--plaque);
   overflow-wrap: anywhere;
+}
+:root[data-theme='dark'] .page-title {
+  color: var(--text);
 }
 .subtitle {
   margin-top: 0.4rem;

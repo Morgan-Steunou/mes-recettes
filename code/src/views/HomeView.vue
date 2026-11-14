@@ -378,38 +378,45 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   flex: 1;
   min-width: 0;
 }
+/* Onglets en petites plaques émaillées ; la catégorie choisie est la plaque verte */
 .tab {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.45rem;
   max-width: 100%;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.9rem;
-  font-weight: 500;
+  padding: 0.2rem 0.85rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   overflow-wrap: anywhere;
-  color: var(--text-muted);
+  color: var(--plaque);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border: 2px solid var(--plaque);
+  border-radius: var(--radius-sm);
   transition:
     color var(--transition),
     background var(--transition),
     border-color var(--transition);
 }
 .tab:hover {
+  background: var(--surface-hover);
+}
+:root[data-theme='dark'] .tab:not(.active) {
   color: var(--text);
-  border-color: var(--border-strong);
 }
 .tab:focus-visible {
   outline: none;
   box-shadow: var(--ring);
 }
 .tab.active {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
+  color: var(--on-plaque);
+  background: var(--plaque);
+  border-color: var(--plaque);
 }
 .tab-count {
+  font-family: var(--font-body);
+  letter-spacing: 0;
   font-size: 0.75rem;
   font-weight: 600;
   opacity: 0.75;
