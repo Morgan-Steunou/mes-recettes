@@ -318,6 +318,18 @@ jobs:
             code/test-results/
           retention-days: 14
 
+  # Résultat unique des deux variantes E2E, sous le nom exigé par la protection de main
+  e2e-result:
+    name: Tests E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: e2e
+    if: ${{ always() }}
+    steps:
+      - name: Les deux variantes ont réussi
+        working-directory: .
+        run: test "${{ needs.e2e.result }}" = "success"
+
   docker:
     name: Build images Docker
     runs-on: ubuntu-latest
