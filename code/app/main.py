@@ -10,16 +10,22 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.logs import RequestLogMiddleware, setup_logging
 from app.core.templating import templates
+
+setup_logging()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    init_db()
+    if settings.run_migrations_on_startup:
+        init_db()
     yield
 
 
-app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
+# Documentation interactive (/docs, /redoc, /openapi.json) désactivée en production
+docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if settings.is_production else {}
+app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan, **docs)
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +34,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ajouté en dernier : enveloppe les autres middlewares, donc voit toutes les requêtes
+app.add_middleware(RequestLogMiddleware)
 
 app.include_router(api_router, prefix=settings.api_prefix)
 

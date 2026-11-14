@@ -1,5 +1,15 @@
-# Intégration continue : lint, tests API, build de l'interface, tests E2E et images Docker.
-# Se lance à chaque push sur main et à chaque pull request (résultat visible sur la PR).
+# Intégration continue : à chaque push sur main, à chaque pull request, et chaque lundi
+# (une faille publiée entre-temps dans une dépendance fait échouer le job audit).
+#   lint    : pre-commit (Ruff, Prettier, ESLint, Trojan Source) sur tout le projet
+#   api     : tests Python (pytest), sur SQLite en mémoire et sur PostgreSQL 18 ;
+#             sur PostgreSQL, alembic check (migrations à jour avec les modèles) ;
+#             couverture mesurée, échec sous le seuil de pyproject.toml (fail_under)
+#   audit   : failles connues dans les dépendances Python (pip-audit) et JavaScript (npm audit)
+#   rename  : python tasks.py rename sur le code récupéré ; tests, build et Compose de l'application renommée
+#   web     : build de production de l'interface Vue
+#   e2e     : tests Playwright contre une vraie base PostgreSQL 18 (mes_recettes_test)
+#   docker  : construction des images (api, web, web-prod, proxy, backup)
+#   prod    : démarrage de docker-compose.prod.yml et vérifications à travers Caddy et nginx
 name: CI
 
 on:
@@ -7,8 +17,10 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # lundi, 6 h UTC
 
-# Un nouveau push sur la même branche annule l'exécution précédente, devenue inutile
+# Un nouveau push annule le run précédent de la même branche
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -17,136 +29,318 @@ permissions:
   contents: read
 
 env:
-  PYTHON_VERSION: "3.12"
-  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "24"
+
+defaults:
+  run:
+    working-directory: code
 
 jobs:
   lint:
-    name: Lint (Ruff, Prettier, ESLint)
+    name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: code/package-lock.json
-      - name: Dépendances JavaScript (Prettier, ESLint)
-        run: npm ci
-        working-directory: code
-      - name: pre-commit sur tout le projet
-        run: |
-          pip install pre-commit==4.7.0
-          pre-commit run --all-files --show-diff-on-failure
+      - uses: actions/checkout@v7
 
-  api:
-    name: Tests API (pytest)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: code
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: code/requirements*.txt
-      - run: pip install -r requirements-dev.txt
-      # Les tests utilisent une base SQLite en mémoire et leur propre SECRET_KEY (tests/conftest.py)
-      - run: pytest
+          cache-dependency-path: code/requirements-dev.txt
 
-  front:
-    name: Build de l'interface (Vite)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: code
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: code/package-lock.json
+
+      # Prettier et ESLint sont lancés depuis code/node_modules par pre-commit
+      - run: npm ci
+      - run: pip install pre-commit==4.7.0
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: pre-commit run --all-files
+        working-directory: .
+        run: pre-commit run --all-files --show-diff-on-failure --color always
+
+  api:
+    name: Tests API (pytest, ${{ matrix.database }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: mes_recettes
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: mes_recettes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mes_recettes -d mes_recettes_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      # Vide pour SQLite : les tests utilisent alors une base en mémoire (voir tests/conftest.py)
+      TEST_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql+psycopg://mes_recettes:ci-password@localhost:5432/mes_recettes_test' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: code/requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      # Une modification de modèle sans migration correspondante fait échouer ce job.
+      # Avant pytest, qui recrée de toute façon le schéma de la base de test.
+      - name: Migrations à jour avec les modèles (alembic check)
+        if: ${{ matrix.database == 'postgres' }}
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          SECRET_KEY: cle-de-ci-uniquement-pour-alembic-check-xxxxxxxx
+        run: |
+          alembic upgrade head
+          alembic check
+
+      # Couverture mesurée sur les deux bases ; échec sous le seuil (fail_under, pyproject.toml)
+      - run: pytest -v --cov --cov-report=term --cov-report=html
+
+      - name: Résumé de la couverture
+        if: ${{ always() }}
+        run: |
+          echo "### Couverture des tests (${{ matrix.database }})" >> "$GITHUB_STEP_SUMMARY"
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: coverage-${{ matrix.database }}
+          path: code/htmlcov/
+          retention-days: 7
+
+  audit:
+    name: Audit des dépendances
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: code/requirements-dev.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Toutes les dépendances épinglées, y compris celles qu'elles tirent (Starlette...)
+      - name: pip-audit
+        run: |
+          pip install "$(grep '^pip-audit==' requirements-dev.txt)"
+          pip-audit -r requirements-dev.txt --progress-spinner off
+
+      # Paquets du package-lock.json ; échoue à partir d'une faille « moderate »
+      - name: npm audit
+        run: npm audit --audit-level=moderate
+
+  rename:
+    name: Renommage (tasks.py rename)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: code/requirements-dev.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+
+      # Comme pour une nouvelle application : le projet renommé doit rester complet et
+      # fonctionnel, sans aucune trace de l'ancien nom
+      - name: Renommage
+        run: |
+          old_id=$(python3 -c "import json; print(json.load(open('code/package.json'))['name'])")
+          python3 tasks.py rename ci-demo "Démo CI"
+          if git grep -n -F -e "$old_id" -e "${old_id//-/_}" -e "Mes Recettes"; then
+            echo "Ancien nom encore présent" >&2; exit 1
+          fi
+          grep -q '"name": "ci-demo"' code/package.json
+          grep -q 'app_name: str = "Démo CI"' code/app/core/config.py
+          grep -q '<title>Démo CI</title>' code/index.html
+          # Second renommage : même nom, rien à faire
+          python3 tasks.py rename ci-demo "Démo CI" | grep -q "rien à faire"
+
+      - name: Tests API de l'application renommée
+        run: |
+          pip install -r code/requirements-dev.txt
+          cd code && pytest -q
+
+      - name: Build et lint de l'interface renommée
+        working-directory: code
+        run: |
+          npm ci
+          npm run build
+          npx eslint .
+
+      - name: Fichiers Compose valides
+        run: |
+          cp .env.example .env
+          docker compose -f docker/docker-compose.yml config -q
+          docker compose --env-file .env -f docker/docker-compose.prod.yml config --format json \
+            | python3 -c "import json, sys; assert json.load(sys.stdin)['name'] == 'ci-demo-prod'"
+
+  web:
+    name: Build interface (Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+
       - run: npm ci
       - run: npm run build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-dist
+          path: code/dist/
+          retention-days: 7
 
   e2e:
     name: Tests E2E (Playwright, comptes ${{ matrix.auth && 'activés' || 'désactivés' }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: [api, web]
     strategy:
       fail-fast: false
       matrix:
         auth: [false, true]
     services:
-      # Base de test mes_recettes_test, comme en local (voir playwright.config.js)
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_DB: mes_recettes_test
           POSTGRES_USER: mes_recettes
-          POSTGRES_PASSWORD: mot-de-passe-ci
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: mes_recettes_test
         ports:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U mes_recettes -d mes_recettes_test"
-          --health-interval 2s --health-timeout 5s --health-retries 15
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
     env:
-      # Pas de .env en CI : ces variables le remplacent (valeurs propres à la CI, sans secret réel)
+      # Pas de .env en CI : ces variables le remplacent (playwright.config.ts fixe
+      # POSTGRES_DB, POSTGRES_HOST et POSTGRES_PORT)
       POSTGRES_USER: mes_recettes
-      POSTGRES_PASSWORD: mot-de-passe-ci
-      SECRET_KEY: cle-de-ci-uniquement-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      POSTGRES_PASSWORD: ci-password
+      SECRET_KEY: cle-de-ci-uniquement-pas-pour-la-production-0123456789
+      # Les tests suivent ce mode : auth.spec.ts avec comptes, no-auth.spec.ts sans
       AUTH_ENABLED: ${{ matrix.auth }}
-    defaults:
-      run:
-        working-directory: code
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: code/requirements*.txt
-      - uses: actions/setup-node@v4
+          cache-dependency-path: code/requirements-dev.txt
+
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: code/package-lock.json
-      # Playwright lance l'API avec code/.venv/bin/python : on recrée ce venv
-      - name: Dépendances Python (venv code/.venv)
+
+      # playwright.config.ts et global-setup.ts lancent code/.venv/bin/python
+      - name: Environnement Python (code/.venv)
         run: |
           python -m venv .venv
           .venv/bin/pip install -r requirements.txt
+
       - run: npm ci
-      - name: Navigateur Chromium
+
+      - name: Cache des navigateurs Playwright
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('code/package-lock.json') }}
+
+      - name: Installation de Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
-      - run: npx playwright test
-      - name: Rapport Playwright (en cas d'échec)
-        if: failure()
-        uses: actions/upload-artifact@v4
+
+      - name: Dépendances système de Chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - run: npm run test:e2e
+
+      - name: Rapport Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-auth-${{ matrix.auth }}
           path: |
             code/playwright-report/
             code/test-results/
-          retention-days: 7
+          retention-days: 14
+
+  # Résultat unique des deux variantes E2E, sous le nom exigé par la protection de main
+  e2e-result:
+    name: Tests E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: e2e
+    if: ${{ always() }}
+    steps:
+      - name: Les deux variantes ont réussi
+        working-directory: .
+        run: test "${{ needs.e2e.result }}" = "success"
 
   docker:
-    name: Images Docker (api, web)
+    name: Build images Docker
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
-        target: [api, web]
+        target: [api, web, web-prod, proxy, backup]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build de l'image ${{ matrix.target }}
-        uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: code
           file: docker/Dockerfile
@@ -154,3 +348,141 @@ jobs:
           push: false
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  prod:
+    name: Pile de production (Compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [api, web]
+    defaults:
+      run:
+        working-directory: .
+    env:
+      COMPOSE: docker compose --env-file .env -f docker/docker-compose.prod.yml
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fichier .env de test
+        run: |
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-password/" .env
+          sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/" .env
+          # Comptes activés : la connexion et son blocage sont vérifiés plus bas
+          sed -i "s/^AUTH_ENABLED=.*/AUTH_ENABLED=true/" .env
+          grep -q '^DOMAIN=localhost$' .env
+
+      - name: Démarrage (db, migrate, api, nginx, Caddy, sauvegardes)
+        run: $COMPOSE up -d --build
+
+      - name: Attente de l'API à travers Caddy et nginx
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsSk https://localhost/api/health/ready; then echo; exit 0; fi
+            sleep 2
+          done
+          echo "L'API n'est pas prête après 2 minutes" >&2
+          exit 1
+
+      - name: Vérifications
+        run: |
+          set -x
+          # Certificat vérifié avec l'autorité interne de Caddy (DOMAIN=localhost)
+          $COMPOSE cp proxy:/srv/caddy/data/caddy/pki/authorities/local/root.crt caddy-root.crt
+          export CURL_CA_BUNDLE="$PWD/caddy-root.crt"
+          curl -fsS -o /dev/null https://localhost/
+          # HTTP redirigé vers HTTPS
+          test "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' http://localhost/login)" = "308 https://localhost/login"
+          # En-têtes de sécurité posés par Caddy (pas de HSTS sur localhost, pas d'en-tête Server)
+          curl -fsS -D headers.txt -o index.html https://localhost/
+          cat headers.txt
+          grep -qi "^content-security-policy: default-src 'self'; script-src 'self'; style-src 'self';" headers.txt
+          grep -qi '^x-content-type-options: nosniff' headers.txt
+          grep -qi '^x-frame-options: DENY' headers.txt
+          grep -qi '^referrer-policy: strict-origin-when-cross-origin' headers.txt
+          grep -qi '^permissions-policy: ' headers.txt
+          if grep -qi -e '^server:' -e '^strict-transport-security:' headers.txt; then exit 1; fi
+          # Aussi sur les réponses de l'API
+          curl -fsS -D - -o /dev/null https://localhost/api/health | grep -qi '^x-content-type-options: nosniff'
+          # Page compatible avec la CSP : aucun script ni style en ligne dans le HTML buildé
+          if grep -q -e '<script>' -e '<style' -e 'style=' index.html; then exit 1; fi
+          # Migrations appliquées une seule fois, par le service « migrate »
+          test "$($COMPOSE ps -a migrate --format '{{.ExitCode}}')" = "0"
+          # Interface buildée servie par nginx, y compris sur une route Vue Router
+          curl -fsS https://localhost/ | grep -q '<div id="app">'
+          curl -fsS https://localhost/login | grep -q '<div id="app">'
+          # Documentation de l'API désactivée en production
+          test "$(curl -s -o /dev/null -w '%{http_code}' https://localhost/api/docs)" = "404"
+          # Connexion : compte créé en ligne de commande, puis token obtenu à travers Caddy et nginx
+          echo "mot-de-passe-de-ci" | $COMPOSE exec -T api python -m app.cli create-user ci-user --password-stdin
+          curl -fsS -c session.txt -X POST https://localhost/api/auth/token -d username=ci-user -d password=mot-de-passe-de-ci | grep -q access_token
+          # Session : cookie HttpOnly renouvelé par /api/auth/refresh, révoqué par /api/auth/logout
+          grep -q '#HttpOnly_localhost.*/api/auth.*mes_recettes_refresh' session.txt
+          curl -fsS -b session.txt -c session.txt -X POST https://localhost/api/auth/refresh | grep -q access_token
+          cp session.txt session-avant-deconnexion.txt
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b session.txt -c session.txt -X POST https://localhost/api/auth/logout)" = "204"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b session-avant-deconnexion.txt -X POST https://localhost/api/auth/refresh)" = "401"
+          # Limitation des tentatives : 5 échecs, puis 429
+          for i in 1 2 3 4 5; do
+            test "$(curl -s -o /dev/null -w '%{http_code}' -X POST https://localhost/api/auth/token -d username=ci-user -d password=faux)" = "401"
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST https://localhost/api/auth/token -d username=ci-user -d password=faux)" = "429"
+          # Un faux X-Forwarded-For envoyé par le client ne contourne pas le blocage
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Forwarded-For: 203.0.113.9' -X POST https://localhost/api/auth/token -d username=ci-user -d password=faux)" = "429"
+          # L'API et Caddy tournent sans les droits root
+          test "$($COMPOSE exec -T api id -u)" != "0"
+          test "$($COMPOSE exec -T proxy id -u)" != "0"
+          # Caddy ne voit que nginx : l'API n'est pas joignable depuis son conteneur
+          if $COMPOSE exec -T proxy wget -q -T 3 -O /dev/null http://api:8000/api/health; then exit 1; fi
+
+      - name: Logs structurés
+        run: |
+          set -x
+          json_check() { python3 -c "import json, sys; e = json.loads(sys.stdin.read()); assert $1, e"; }
+          # L'identifiant de requête créé par nginx revient dans la réponse...
+          id=$(curl -sk -D - -o /dev/null https://localhost/api/recipes | tr -d '\r' | awk 'tolower($1) == "x-request-id:" {print $2}')
+          test -n "$id"
+          sleep 1
+          # ... et dans les logs JSON de l'API et de nginx
+          $COMPOSE logs --no-log-prefix api | grep -F "\"request_id\": \"$id\"" | head -n 1 \
+            | json_check 'e["event"] == "http.request" and e["status"] == 401'
+          $COMPOSE logs --no-log-prefix web | grep -F "\"request_id\":\"$id\"" | head -n 1 \
+            | json_check 'e["path"] == "/api/recipes" and e["status"] == 401'
+          # Événements de sécurité : échec de connexion et blocage, en JSON
+          $COMPOSE logs --no-log-prefix api | grep -F '"event": "auth.login.failure"' | head -n 1 \
+            | json_check 'e["level"] == "WARNING" and e["username"] == "ci-user"'
+          $COMPOSE logs --no-log-prefix api | grep -F '"event": "auth.login.throttled"' > /dev/null
+          # Aucun mot de passe dans les logs
+          if $COMPOSE logs api web | grep -F 'mot-de-passe-de-ci'; then exit 1; fi
+
+      - name: Sauvegarde et restauration
+        run: |
+          set -x
+          PSQL="$COMPOSE exec -T db psql -U mes_recettes -d mes_recettes -tA -c"
+          # Une sauvegarde est faite dès le démarrage du service, sans root
+          for i in $(seq 1 30); do $COMPOSE logs backup | grep -q 'Sauvegarde /backups/' && break; sleep 2; done
+          $COMPOSE logs backup | grep -q 'Sauvegarde /backups/'
+          test "$($COMPOSE exec -T backup id -u)" != "0"
+          # Sauvegarde à la demande, avec le compte ci-user
+          make prod-backup
+          make prod-backups | grep -q '\.dump'
+          # Compte supprimé après la sauvegarde...
+          $PSQL "DELETE FROM users WHERE username = 'ci-user'"
+          test "$($PSQL "SELECT count(*) FROM users WHERE username = 'ci-user'")" = "0"
+          # ... puis restauration de la plus récente : le compte revient, l'API redémarre
+          make prod-restore FILE=latest
+          test "$($PSQL "SELECT count(*) FROM users WHERE username = 'ci-user'")" = "1"
+          for i in $(seq 1 30); do curl -fsSk https://localhost/api/health/ready && break; sleep 2; done
+          # Compteurs d'échecs remis à zéro par le redémarrage de l'API : connexion possible
+          curl -fsSk -X POST https://localhost/api/auth/token -d username=ci-user -d password=mot-de-passe-de-ci | grep -q access_token
+          # Restauration refusée sans nom de fichier, ou avec un fichier inconnu (API relancée)
+          if make prod-restore; then exit 1; fi
+          if make prod-restore FILE=inexistant.dump; then exit 1; fi
+          test "$($COMPOSE ps api --format '{{.State}}')" = "running"
+
+      - name: Journaux des conteneurs
+        if: ${{ failure() }}
+        run: $COMPOSE logs
+
+      - name: Arrêt
+        if: ${{ always() }}
+        run: $COMPOSE down -v

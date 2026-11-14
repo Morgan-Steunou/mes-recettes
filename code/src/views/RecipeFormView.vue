@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -6,11 +6,11 @@ import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
 import IngredientsEditor from '@/components/IngredientsEditor.vue'
 import { formatDuration, ingredientRow, ingredientsPayload, totalTime } from '@/utils/recipe'
+import { errorText } from '@/services/api'
+import type { Ingredient, RecipeInput } from '@/types/api'
 
 // id : présent en modification (/recettes/:id/modifier), absent en création
-const props = defineProps({
-  id: { type: String, default: null },
-})
+const props = withDefaults(defineProps<{ id?: string | null }>(), { id: null })
 
 const store = useRecipesStore()
 const { categories } = storeToRefs(store)
@@ -19,11 +19,12 @@ const route = useRoute()
 
 // Catégorie choisie ('' = sans catégorie). En création, celle de l'onglet d'où l'on vient
 // (lien « Nouvelle recette » de l'accueil : /recettes/nouvelle?categorie=3)
-const categoryId = ref(/^\d+$/.test(route.query.categorie ?? '') ? route.query.categorie : '')
+const fromTab = route.query.categorie
+const categoryId = ref(typeof fromTab === 'string' && /^\d+$/.test(fromTab) ? fromTab : '')
 // Création d'une catégorie depuis le formulaire
-const newCategory = ref(null) // null : champ masqué
-const newCategoryInput = ref(null)
-const categoryError = ref(null)
+const newCategory = ref<string | null>(null) // null : champ masqué
+const newCategoryInput = ref<HTMLInputElement | null>(null)
+const categoryError = ref<string | null>(null)
 const creatingCategory = ref(false)
 
 async function openNewCategory() {
@@ -48,7 +49,7 @@ async function createCategory() {
     categoryId.value = String(category.id)
     newCategory.value = null
   } catch (e) {
-    categoryError.value = e.message
+    categoryError.value = errorText(e)
   } finally {
     creatingCategory.value = false
   }
@@ -59,7 +60,7 @@ const isEdit = computed(() => props.id !== null)
 const cancelTarget = computed(() =>
   isEdit.value ? { name: 'recipe-detail', params: { id: props.id } } : { name: 'home' },
 )
-const recipeId = computed(() => (isEdit.value ? Number(props.id) : null))
+const recipeId = computed(() => Number(props.id))
 
 // Champs du formulaire : texte pour tout (les nombres sont convertis à l'envoi)
 const form = reactive({
@@ -75,9 +76,9 @@ const ingredientRows = ref([ingredientRow()])
 
 const loading = ref(false)
 // Recette à modifier introuvable ou illisible : le formulaire n'est pas affiché
-const loadError = ref(null)
+const loadError = ref<string | null>(null)
 // Refus de l'API à l'enregistrement : la saisie est conservée
-const saveError = ref(null)
+const saveError = ref<string | null>(null)
 const saving = ref(false)
 
 const total = computed(() =>
@@ -89,18 +90,18 @@ const total = computed(() =>
   ),
 )
 
-function toNumber(value) {
+function toNumber(value: string | number | null | undefined): number | null {
   if (value === '' || value == null) return null
   return Number(value)
 }
 
-function toText(value) {
+function toText(value: string): string | null {
   const text = value.trim()
   return text === '' ? null : text
 }
 
 // Données envoyées à l'API : champs vides → null
-function payload(ingredients) {
+function payload(ingredients: Ingredient[]): RecipeInput {
   return {
     title: form.title.trim(),
     description: toText(form.description),
@@ -117,13 +118,14 @@ async function load() {
   loading.value = true
   try {
     const recipe = await store.fetchRecipe(recipeId.value)
-    for (const key of Object.keys(form)) form[key] = recipe[key] ?? ''
+    for (const key of Object.keys(form) as (keyof typeof form)[])
+      form[key] = String(recipe[key] ?? '')
     categoryId.value = recipe.category_id ? String(recipe.category_id) : ''
     ingredientRows.value = recipe.ingredients.length
       ? recipe.ingredients.map(ingredientRow)
       : [ingredientRow()]
   } catch (e) {
-    loadError.value = e.message
+    loadError.value = errorText(e)
   } finally {
     loading.value = false
   }
@@ -132,11 +134,12 @@ async function load() {
 async function submit() {
   saveError.value = null
   // Ligne incomplète (ex. quantité sans nom) : signalée avant tout envoi
-  const { ingredients, error } = ingredientsPayload(ingredientRows.value)
-  if (error) {
-    saveError.value = error
+  const rows = ingredientsPayload(ingredientRows.value)
+  if (rows.error !== undefined) {
+    saveError.value = rows.error
     return
   }
+  const { ingredients } = rows
   saving.value = true
   try {
     const data = payload(ingredients)
@@ -146,7 +149,7 @@ async function submit() {
     // Retour sur la fiche de la recette enregistrée
     router.push({ name: 'recipe-detail', params: { id: saved.id } })
   } catch (e) {
-    saveError.value = e.message
+    saveError.value = errorText(e)
   } finally {
     saving.value = false
   }
@@ -222,7 +225,7 @@ onMounted(() => {
         <button
           type="button"
           class="btn"
-          :disabled="creatingCategory || !newCategory.trim()"
+          :disabled="creatingCategory || !newCategory?.trim()"
           @click="createCategory"
         >
           <AppIcon name="check" /> Créer

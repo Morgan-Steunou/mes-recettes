@@ -1,0 +1,145 @@
+# Déploiement de production sur une machine, depuis la racine du projet :
+#   docker compose --env-file .env -f docker/docker-compose.prod.yml up -d --build   (ou : python tasks.py prod-up)
+#
+# Différences avec docker-compose.yml (développement) :
+# - HTTPS par Caddy (service « proxy ») : certificat Let's Encrypt obtenu et renouvelé
+#   automatiquement pour DOMAIN, redirection de HTTP vers HTTPS ;
+# - interface buildée et servie par nginx (cible web-prod) : pas de serveur Vite ;
+# - migrations appliquées une seule fois par le service « migrate », avant l'API ;
+# - ENVIRONMENT=production : l'API refuse de démarrer avec DEBUG=true ou des origines
+#   CORS localhost, et /docs est désactivé ;
+# - sauvegarde quotidienne de la base par le service « backup » (volume « backups ») ;
+# - seul Caddy est publié (ports 80 et 443) ; il ne voit que nginx (réseau « edge ») :
+#   l'API et la base ne sont joignables ni de l'extérieur ni depuis Caddy.
+#
+# Le .env de la racine doit définir au moins POSTGRES_PASSWORD et SECRET_KEY (propres à la prod)
+# et DOMAIN. « --env-file .env » est nécessaire pour DOMAIN : sans lui, Compose cherche
+# le .env dans docker/ et s'arrête en signalant que DOMAIN manque.
+name: mes-recettes-prod
+
+# Variables communes à « migrate » et « api » (prioritaires sur celles du .env)
+x-prod-env: &prod-env
+  ENVIRONMENT: production
+  DEBUG: "false"
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  # Interface et API sur la même origine (nginx) : aucune origine CORS à autoriser
+  CORS_ORIGINS: "[]"
+
+services:
+  db:
+    image: postgres:18-alpine
+    env_file:
+      - path: ../.env
+        required: true
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  # Applique les migrations puis s'arrête ; l'API ne démarre qu'après sa réussite
+  migrate:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: api
+    env_file:
+      - path: ../.env
+        required: true
+    environment: *prod-env
+    command: ["python", "-m", "app.cli", "migrate"]
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: api
+    env_file:
+      - path: ../.env
+        required: true
+    environment:
+      <<: *prod-env
+      # Migrations déjà appliquées par « migrate »
+      RUN_MIGRATIONS_ON_STARTUP: "false"
+      # L'API n'est joignable que par nginx : on lui fait confiance pour X-Forwarded-For
+      FORWARDED_ALLOW_IPS: "*"
+    networks: [backend]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: web-prod
+    networks: [backend, edge]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Sauvegarde quotidienne de la base (pg_dump) dans le volume « backups », gardée
+  # BACKUP_KEEP_DAYS jours (14). Commandes : python tasks.py prod-backup, prod-backups, prod-restore.
+  # Le volume est sur la même machine que la base : copier aussi les sauvegardes ailleurs.
+  backup:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: backup
+    env_file:
+      - path: ../.env
+        required: true
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    volumes:
+      - backups:/backups
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Point d'entrée HTTPS : termine TLS, redirige HTTP vers HTTPS, puis relaie vers nginx.
+  # Les certificats sont gardés dans le volume caddy-data (à ne pas supprimer : Let's Encrypt
+  # limite le nombre de certificats délivrés par semaine).
+  proxy:
+    build:
+      context: ../code
+      dockerfile: ../docker/Dockerfile
+      target: proxy
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN manquant - le définir dans .env et lancer docker compose avec --env-file .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - caddy-data:/srv/caddy/data
+      - caddy-config:/srv/caddy/config
+    networks: [edge]
+    depends_on:
+      - web
+    restart: unless-stopped
+
+networks:
+  backend:
+  edge:
+
+volumes:
+  pgdata:
+  backups:
+  caddy-data:
+  caddy-config:

@@ -2,9 +2,20 @@
 testpaths = ["tests"]
 pythonpath = ["."]
 
+# Couverture des tests (python tasks.py cov, et en CI) : code de l'API, branches comprises
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+# Seuil sous lequel la CI échoue : du nouveau code doit arriver avec ses tests
+fail_under = 90
+
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

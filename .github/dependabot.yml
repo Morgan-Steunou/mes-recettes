@@ -1,0 +1,75 @@
+# Dependabot : propose chaque lundi des pull requests de mise à jour des dépendances.
+# La CI tourne sur chacune (tests, audit) : fusionner celles qui sont vertes, après lecture
+# des notes de version pour les versions majeures.
+# Les mises à jour mineures et correctives sont regroupées en une PR par écosystème ;
+# chaque version majeure arrive dans sa propre PR.
+# Les alertes de sécurité (Settings > Code security > Dependabot alerts / security updates)
+# s'activent dans les réglages du dépôt, indépendamment de ce fichier.
+version: 2
+
+updates:
+  # Python : code/requirements.txt et code/requirements-dev.txt
+  - package-ecosystem: pip
+    directory: /code
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      python:
+        update-types: [minor, patch]
+    ignore:
+      # Ruff est aussi épinglé dans .pre-commit-config.yaml (rev) : mis à jour à la main,
+      # aux deux endroits en même temps
+      - dependency-name: ruff
+    commit-message:
+      prefix: "Dépendances Python"
+
+  # JavaScript : code/package.json et package-lock.json
+  - package-ecosystem: npm
+    directory: /code
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      javascript:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "Dépendances JS"
+
+  # Actions utilisées par .github/workflows/
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "CI"
+
+  # Images de base de docker/Dockerfile (python, node, nginx, caddy)
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      # Versions de Python et de Node choisies à la main (mêmes valeurs que PYTHON_VERSION et
+      # NODE_VERSION dans .github/workflows/ci.yml) : Dependabot proposerait la toute dernière,
+      # pas forcément stable ni LTS (Node impair). Seuls les correctifs restent automatiques.
+      - dependency-name: python
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "Docker"
+
+  # Images des fichiers Compose de docker/ (postgres)
+  - package-ecosystem: docker-compose
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "Docker"

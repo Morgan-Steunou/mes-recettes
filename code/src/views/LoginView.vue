@@ -1,8 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/AppIcon.vue'
+import { errorText } from '@/services/api'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -10,7 +11,7 @@ const router = useRouter()
 
 const username = ref('')
 const password = ref('')
-const error = ref(null)
+const error = ref<string | null>(null)
 const submitting = ref(false)
 
 async function submit() {
@@ -26,7 +27,7 @@ async function submit() {
         : '/'
     router.replace(target)
   } catch (e) {
-    error.value = e.message
+    error.value = errorText(e)
     password.value = ''
   } finally {
     submitting.value = false

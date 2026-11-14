@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useTheme } from '@/composables/useTheme'
 import AppIcon from '@/components/AppIcon.vue'
 

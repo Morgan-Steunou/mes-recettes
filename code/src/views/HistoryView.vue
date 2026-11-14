@@ -1,9 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
 import { PERIODS, formatMonth, parseDay, periodRange, relativeDay } from '@/utils/dates'
+import { errorText } from '@/services/api'
+import type { HistoryEntry } from '@/types/api'
 
 const PAGE_SIZE = 50
 const STARS = [1, 2, 3, 4, 5]
@@ -13,26 +15,28 @@ const route = useRoute()
 const router = useRouter()
 
 // Période choisie, gardée dans l'adresse (?periode=30j) : conservée au rechargement
-const period = computed(() =>
-  PERIODS.some((p) => p.key === route.query.periode) ? route.query.periode : 'tout',
-)
+const period = computed(() => {
+  const value = route.query.periode
+  return PERIODS.find((p) => p.key === value)?.key ?? 'tout'
+})
 
-const items = ref([])
+const items = ref<HistoryEntry[]>([])
 const total = ref(0)
 const recipeCount = ref(0)
 const loading = ref(true)
 const loadingMore = ref(false)
-const error = ref(null)
+const error = ref<string | null>(null)
 
 const hasMore = computed(() => items.value.length < total.value)
 
 // Repas regroupés par mois : [{ month: 'novembre 2026', items: [...] }]
 const months = computed(() => {
-  const groups = []
+  const groups: { month: string; items: HistoryEntry[] }[] = []
   for (const item of items.value) {
     const month = formatMonth(item.cooked_on)
-    if (groups.at(-1)?.month !== month) groups.push({ month, items: [] })
-    groups.at(-1).items.push(item)
+    const last = groups.at(-1)
+    if (last?.month === month) last.items.push(item)
+    else groups.push({ month, items: [item] })
   }
   return groups
 })
@@ -44,11 +48,11 @@ const summary = computed(() => {
 })
 
 const dayFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric' })
-function dayLabel(iso) {
+function dayLabel(iso: string) {
   return dayFormat.format(parseDay(iso))
 }
 
-async function load({ more = false } = {}) {
+async function load({ more = false }: { more?: boolean } = {}) {
   error.value = null
   if (more) loadingMore.value = true
   else loading.value = true
@@ -62,14 +66,14 @@ async function load({ more = false } = {}) {
     total.value = page.total
     recipeCount.value = page.recipe_count
   } catch (e) {
-    error.value = e.message
+    error.value = errorText(e)
   } finally {
     loading.value = false
     loadingMore.value = false
   }
 }
 
-function choose(key) {
+function choose(key: string) {
   router.replace({ query: key === 'tout' ? {} : { periode: key } })
 }
 

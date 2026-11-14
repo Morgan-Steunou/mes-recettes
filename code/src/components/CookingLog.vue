@@ -1,31 +1,31 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
 import { formatDayLong, relativeDay, todayISO } from '@/utils/dates'
+import { errorText } from '@/services/api'
+import type { Cooking, Recipe } from '@/types/api'
 
 // Historique des repas d'une recette : « je l'ai cuisinée », avec date, note et commentaire
-const props = defineProps({
-  recipeId: { type: Number, required: true },
-})
+const props = defineProps<{ recipeId: number }>()
 // Émis après un ajout ou une suppression, avec la recette à jour (cooked_count, last_cooked_on)
-const emit = defineEmits(['changed'])
+const emit = defineEmits<{ changed: [recipe: Recipe] }>()
 
 const store = useRecipesStore()
 
-const cookings = ref([])
+const cookings = ref<Cooking[]>([])
 const loading = ref(true)
-const loadError = ref(null)
-const actionError = ref(null)
+const loadError = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 
 // Formulaire d'ajout
 const formOpen = ref(false)
 const saving = ref(false)
 const cookedOn = ref(todayISO())
-const rating = ref(null)
+const rating = ref<number | null>(null)
 const comment = ref('')
-const dateInput = ref(null)
-const section = ref(null)
+const dateInput = ref<HTMLInputElement | null>(null)
+const section = ref<HTMLElement | null>(null)
 
 const today = computed(() => todayISO())
 const STARS = [1, 2, 3, 4, 5]
@@ -34,7 +34,7 @@ async function load() {
   try {
     cookings.value = await store.fetchCookings(props.recipeId)
   } catch (e) {
-    loadError.value = e.message
+    loadError.value = errorText(e)
   } finally {
     loading.value = false
   }
@@ -57,7 +57,7 @@ function close() {
 }
 
 // Un clic sur l'étoile déjà choisie retire la note
-function chooseRating(value, event) {
+function chooseRating(value: number, event: Event) {
   if (rating.value === value) {
     event.preventDefault()
     rating.value = null
@@ -80,13 +80,13 @@ async function submit() {
     formOpen.value = false
     emit('changed', recipe)
   } catch (e) {
-    actionError.value = `Impossible d'enregistrer le repas : ${e.message}`
+    actionError.value = `Impossible d'enregistrer le repas : ${errorText(e)}`
   } finally {
     saving.value = false
   }
 }
 
-async function remove(cooking) {
+async function remove(cooking: Cooking) {
   if (!window.confirm(`Retirer le repas du ${formatDayLong(cooking.cooked_on)} de l'historique ?`))
     return
   actionError.value = null
@@ -95,11 +95,11 @@ async function remove(cooking) {
     cookings.value = cookings.value.filter((c) => c.id !== cooking.id)
     emit('changed', recipe)
   } catch (e) {
-    actionError.value = `Impossible de retirer le repas : ${e.message}`
+    actionError.value = `Impossible de retirer le repas : ${errorText(e)}`
   }
 }
 
-function ratingLabel(value) {
+function ratingLabel(value: number) {
   return `Note : ${value} sur 5`
 }
 

@@ -1,27 +1,30 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRecipesStore } from '@/stores/recipes'
 import AppIcon from '@/components/AppIcon.vue'
+import { errorText } from '@/services/api'
+import type { Category } from '@/types/api'
 
 const store = useRecipesStore()
 const { categories } = storeToRefs(store)
 
 const loading = ref(true)
-const loadError = ref(null)
+const loadError = ref<string | null>(null)
 // Dernière erreur d'une action (création, renommage, suppression)
-const actionError = ref(null)
+const actionError = ref<string | null>(null)
 
 const newName = ref('')
 const creating = ref(false)
-const newInput = ref(null)
+const newInput = ref<HTMLInputElement | null>(null)
 
 // Renommage en place : id de la catégorie en cours de modification
-const editingId = ref(null)
+const editingId = ref<number | null>(null)
 const editName = ref('')
-const editInputs = ref({})
+// Champs de renommage, par id de catégorie (ref dans un v-for)
+const editInputs = ref<Record<number, HTMLInputElement | null>>({})
 
-function plural(count, word) {
+function plural(count: number, word: string) {
   return `${count} ${word}${count > 1 ? 's' : ''}`
 }
 
@@ -31,7 +34,7 @@ async function load() {
   try {
     await store.fetchCategories()
   } catch (e) {
-    loadError.value = e.message
+    loadError.value = errorText(e)
   } finally {
     loading.value = false
   }
@@ -48,13 +51,13 @@ async function create() {
     if (newName.value.trim() === name) newName.value = ''
     newInput.value?.focus()
   } catch (e) {
-    actionError.value = e.message
+    actionError.value = errorText(e)
   } finally {
     creating.value = false
   }
 }
 
-async function startEdit(category) {
+async function startEdit(category: Category) {
   editingId.value = category.id
   editName.value = category.name
   actionError.value = null
@@ -66,7 +69,7 @@ function cancelEdit() {
   editingId.value = null
 }
 
-async function saveEdit(category) {
+async function saveEdit(category: Category) {
   const name = editName.value.trim()
   if (!name) return
   if (name === category.name) {
@@ -78,11 +81,11 @@ async function saveEdit(category) {
     await store.renameCategory(category.id, name)
     cancelEdit()
   } catch (e) {
-    actionError.value = e.message
+    actionError.value = errorText(e)
   }
 }
 
-async function remove(category) {
+async function remove(category: Category) {
   const count = category.recipe_count
   let detail = ''
   if (count === 1) {
@@ -95,7 +98,7 @@ async function remove(category) {
   try {
     await store.deleteCategory(category.id)
   } catch (e) {
-    actionError.value = e.message
+    actionError.value = errorText(e)
   }
 }
 
@@ -148,7 +151,7 @@ onMounted(load)
       <li v-for="c in categories" :key="c.id" class="row">
         <form v-if="editingId === c.id" class="edit" @submit.prevent="saveEdit(c)">
           <input
-            :ref="(el) => (editInputs[c.id] = el)"
+            :ref="(el) => (editInputs[c.id] = el as HTMLInputElement | null)"
             v-model="editName"
             maxlength="50"
             autocomplete="off"

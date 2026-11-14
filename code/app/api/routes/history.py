@@ -20,7 +20,7 @@ def history(
 ):
     if since and until and since > until:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "La date de début doit précéder la date de fin",
         )
     return service.history(since=since, until=until, limit=limit, offset=offset)
